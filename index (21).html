@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Enzyme Arcade</title>
+<style>
+:root{
+  --bg:#E9F1EF; --ink:#12313A; --panel:#FFFFFF;
+  --enz:#4A5FD0; --teal:#14998F; --orange:#F0892A; --hot:#D6453D; --cold:#2F7FC9;
+  --good:#1E7A44; --goodbg:#E3F4E9; --bad:#B3302F; --badbg:#FBE7E5; --focus:#FFB400;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Verdana,Tahoma,"Trebuchet MS",sans-serif;font-size:18px;line-height:1.55}
+main{max-width:1000px;margin:0 auto;padding:0 16px 48px}
+.skip{position:absolute;left:-999px;top:0;background:#fff;padding:8px 12px;border:3px solid var(--ink);z-index:10}
+.skip:focus{left:8px;top:8px}
+h1{font-size:2.3rem;line-height:1.15;margin:.3em 0 .2em}
+h2{font-size:1.5rem;margin:0}
+h3{font-size:1.15rem;margin:0}
+p{margin:.4em 0}
+.lead{font-size:1.15rem;max-width:36em}
+:focus-visible{outline:4px solid var(--focus);outline-offset:2px}
+
+.toolbar{max-width:1000px;margin:0 auto;padding:12px 16px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.tog{display:flex;align-items:center;gap:8px;font-size:.95rem;font-weight:700;cursor:pointer}
+.tog input{width:22px;height:22px;accent-color:var(--enz)}
+
+.btn{font:inherit;font-weight:700;color:var(--ink);background:#fff;border:3px solid var(--ink);border-radius:12px;padding:10px 16px;cursor:pointer;min-height:48px}
+.btn:hover{background:#F0F6F5}
+.btn:active{transform:translateY(1px)}
+.btn.small{padding:6px 12px;min-height:40px;font-size:.95rem}
+.btn.primary{background:var(--enz);color:#fff;border-color:#2E3E9E}
+.btn.primary:hover{background:#3C50BE}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.btn.pulse:not([disabled]){animation:pulse 1s infinite;border-color:var(--hot)}
+@keyframes pulse{50%{box-shadow:0 0 0 6px rgba(214,69,61,.45)}}
+
+canvas{display:block;width:100%;height:auto;border:3px solid var(--ink);border-radius:14px;background:#F6FBFA}
+#heroCanvas{margin:14px 0 18px}
+
+.levels{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+@media(min-width:760px){.levels{grid-template-columns:1fr 1fr}}
+.lvl{width:100%;height:100%;text-align:left;display:grid;grid-template-columns:auto 1fr auto;gap:4px 16px;align-items:center;font:inherit;color:var(--ink);background:#fff;border:3px solid var(--ink);border-radius:14px;padding:14px 18px;cursor:pointer}
+.lvl:hover{background:#F0F6F5}
+.lvl .num{grid-row:1/3;width:48px;height:48px;border-radius:50%;background:var(--enz);color:#fff;font-weight:700;font-size:1.3rem;display:flex;align-items:center;justify-content:center}
+.lvl p{margin:0;font-size:.95rem}
+.lvl .st{grid-row:1/3;grid-column:3;font-size:1.3rem;color:#C98A00;white-space:nowrap}
+.lvl .st small{font-size:.8rem;color:var(--ink)}
+.ngss{font-size:.8rem;margin-top:22px;max-width:46em;opacity:.85}
+
+.screen[hidden]{display:none}
+.topbar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin:6px 0 10px}
+.topbar h2{flex:1 1 220px}
+.hud{display:flex;flex-wrap:wrap;gap:6px 22px;align-items:center;font-weight:700;margin:4px 0 10px}
+.hearts{color:var(--hot);font-size:1.6rem;letter-spacing:.1em;line-height:1}
+
+.arenawrap{position:relative;min-height:470px}
+.arenawrap.hurt{animation:hurt .45s}
+@keyframes hurt{30%{box-shadow:0 0 0 6px var(--hot);border-radius:14px}}
+.overlay{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;padding:12px;background:rgba(233,241,239,.95);border-radius:14px;overflow:auto}
+.overlay[hidden]{display:none}
+.ocard{background:#fff;border:3px solid var(--ink);border-radius:14px;padding:18px 20px;max-width:640px;width:100%;margin:auto}
+.ocard h3{font-size:1.4rem;margin-bottom:6px}
+.toast{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);z-index:4;max-width:92%;width:max-content;padding:10px 16px;border-radius:12px;font-weight:700;border:3px solid var(--ink);background:#fff}
+.toast[hidden]{display:none}
+.toast.bad{background:var(--badbg);color:#7C1F1E;border-color:var(--bad)}
+.toast.good{background:var(--goodbg);color:#14502D;border-color:var(--good)}
+.canvaswrap{position:relative}
+.banner{position:absolute;top:10px;left:50%;transform:translateX(-50%);max-width:92%;width:max-content;text-align:center;padding:8px 14px;border-radius:12px;font-weight:700;border:3px solid var(--ink);z-index:2}
+.banner[hidden]{display:none}
+.banner.heat{background:#FFD9D2}
+.banner.cold{background:#D6EAFB}
+
+.labgrid{display:grid;gap:14px}
+@media(min-width:900px){.labgrid{grid-template-columns:1.75fr 1fr}}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px}
+.slide{flex:1 1 240px;display:flex;align-items:center;gap:10px;font-weight:700}
+.slide input[type=range]{flex:1;min-width:110px;height:36px;accent-color:var(--enz)}
+.slide output{min-width:3.4em;text-align:right}
+.meter{background:#fff;border:3px solid var(--ink);border-radius:12px;padding:10px 14px}
+.mrow{display:flex;justify-content:space-between;gap:10px;margin-top:6px}
+.bar{height:16px;background:#DDE8E6;border:2px solid var(--ink);border-radius:9px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--teal)}
+#mHealthBar{background:var(--enz)}
+.status{font-weight:700;min-height:3.6em;margin:10px 0}
+
+.rush{position:relative;height:340px;overflow:hidden;background:#F6FBFA;border:3px solid var(--ink);border-radius:14px}
+.dropline{position:absolute;left:0;right:0;bottom:0;height:7px;background:repeating-linear-gradient(90deg,var(--hot) 0 14px,transparent 14px 24px)}
+.card{position:absolute;top:0;display:flex;align-items:center;gap:14px;height:76px;padding:0 16px;background:#fff;border:3px solid var(--ink);border-radius:14px;will-change:transform}
+.card .em{font-size:2.2rem;line-height:1}
+.card .tx{display:flex;flex-direction:column;line-height:1.25}
+.card small{font-size:.82rem}
+.card.active{border-color:var(--enz);box-shadow:0 0 0 4px rgba(74,95,208,.35)}
+.card.ok{background:var(--goodbg);border-color:var(--good);opacity:0;transition:opacity .45s}
+.card.no{background:var(--badbg);border-color:var(--bad);animation:shk .4s}
+@keyframes shk{25%{margin-left:-8px}75%{margin-left:8px}}
+.bins{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:10px}
+.bin{font:inherit;font-weight:700;color:var(--ink);background:#fff;border:3px solid var(--ink);border-radius:12px;padding:12px;cursor:pointer;min-height:60px;display:flex;align-items:center;gap:10px;justify-content:center;text-align:left}
+.bin:hover{background:#EEF2FF}
+.bin:active{background:#D9E0FF}
+.bin .k{flex:none;width:28px;height:28px;border-radius:7px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center}
+
+.organgrid{display:grid;gap:14px}
+@media(min-width:760px){.organgrid{grid-template-columns:300px 1fr}}
+.odiag{background:#fff;border:3px solid var(--ink);border-radius:14px;padding:8px}
+.odiag svg{width:100%;height:auto;max-height:430px}
+.organ{transition:opacity .2s}
+svg.has-hl .organ:not(.hl){opacity:.3}
+.organ.hl{filter:drop-shadow(0 0 5px #FFC400) drop-shadow(0 0 2px #FFC400)}
+.pick .organ{cursor:pointer}
+.pick .organ:hover,.pick .organ:focus-visible{filter:drop-shadow(0 0 5px #FFC400);outline:none}
+.oprompt{font-size:1.3rem;font-weight:700;background:#fff;border:3px solid var(--ink);border-radius:14px;padding:16px;min-height:6.5em}
+.obar{height:20px;background:#DDE8E6;border:3px solid var(--ink);border-radius:11px;overflow:hidden;margin-top:10px}
+.obar i{display:block;height:100%;width:100%;background:var(--teal)}
+.ores{margin-top:10px;font-weight:700;min-height:3.6em}
+
+.boss{text-align:center}
+.boss svg{width:170px;height:auto}
+.bossname{font-weight:700}
+.bossbar{height:22px;max-width:440px;margin:6px auto 12px;background:#DDE8E6;border:3px solid var(--ink);border-radius:11px;overflow:hidden}
+.bossbar i{display:block;height:100%;width:100%;background:var(--hot);transition:width .4s}
+.boss.hit svg{animation:bshake .5s;filter:brightness(1.5)}
+.boss.taunt svg{animation:btaunt .6s}
+@keyframes bshake{0%,100%{transform:translateX(0)}20%{transform:translateX(-14px) rotate(-6deg)}40%{transform:translateX(14px) rotate(6deg)}60%{transform:translateX(-10px)}80%{transform:translateX(8px)}}
+@keyframes btaunt{0%,100%{transform:scale(1)}40%{transform:scale(1.18)}}
+
+.qcard{background:#fff;border:3px solid var(--ink);border-radius:14px;padding:14px 16px}
+.qmeta{display:flex;justify-content:space-between;align-items:center;gap:10px;font-weight:700;font-size:.95rem}
+.qtext{font-size:1.2rem;font-weight:700;margin:10px 0 12px}
+.opts{display:grid;gap:10px}
+.opt{display:flex;gap:12px;align-items:center;text-align:left;font:inherit;color:var(--ink);background:#fff;border:3px solid var(--ink);border-radius:12px;padding:10px 14px;cursor:pointer;min-height:54px}
+.opt:hover:not([disabled]){background:#F0F6F5}
+.opt .key{flex:none;width:34px;height:34px;border-radius:8px;background:var(--ink);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center}
+.opt.right{background:var(--goodbg);border-color:var(--good)}
+.opt.wrong{background:var(--badbg);border-color:var(--bad)}
+.opt[disabled]{cursor:default}
+.fb{margin-top:12px;padding:10px 14px;border-radius:12px;font-weight:700}
+.fb.good{background:var(--goodbg);color:#14502D}
+.fb.bad{background:var(--badbg);color:#7C1F1E}
+.fb p{font-weight:400;margin:.3em 0 0}
+.row{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;align-items:center}
+
+.stars{font-size:3rem;color:#C98A00;margin:4px 0;letter-spacing:.1em;line-height:1.2}
+.pop{animation:pop .5s ease-out both}
+@keyframes pop{0%{transform:scale(.5);opacity:0}70%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+.review{background:#F3F8F7;border:2px solid var(--ink);border-radius:12px;padding:6px 14px;margin:10px 0;font-size:.95rem}
+.review ul{margin:4px 0;padding-left:20px}
+
+dialog{max-width:640px;width:calc(100% - 32px);border:4px solid var(--ink);border-radius:16px;padding:18px 20px;color:var(--ink);background:#fff;font-family:inherit}
+dialog::backdrop{background:rgba(18,49,58,.55)}
+dialog dl{margin:10px 0}
+dialog dt{font-weight:700;margin-top:10px}
+dialog dd{margin:0}
+
+
+/* ---- final page ---- */
+#final{position:relative;overflow:hidden;padding-bottom:20px}
+.cert{margin:12px 0;padding:22px 20px;text-align:center;border:7px solid transparent;border-radius:22px;background:linear-gradient(#FFFDF4,#FFFDF4) padding-box,linear-gradient(135deg,#4A5FD0,#D4509A,#F0892A,#1B9A6D) border-box;box-shadow:0 6px 0 rgba(18,49,58,.15)}
+.cert h2{font-size:2rem;background:linear-gradient(90deg,#4A5FD0,#D4509A 55%,#F0892A);-webkit-background-clip:text;background-clip:text;color:#4A5FD0;-webkit-text-fill-color:transparent}
+.trophy{font-size:3.5rem;line-height:1.1;animation:pop .6s ease-out both}
+.who{font-size:1.6rem;font-weight:700;min-height:1.6em;border-bottom:3px dashed #9FB8B5;display:inline-block;min-width:50%;margin:8px 0}
+.fdate{margin:0 0 6px;font-weight:700}
+.bigline{font-size:1.2rem;font-weight:700;margin:6px 0 10px}
+.fl{list-style:none;margin:0 auto;padding:0;max-width:560px;display:grid;gap:8px;text-align:left}
+.fl li{display:grid;grid-template-columns:auto 1fr auto auto;gap:6px 12px;align-items:center;background:var(--t,#fff);border:3px solid var(--c,var(--ink));border-radius:12px;padding:6px 12px}
+.fl .n{width:32px;height:32px;border-radius:50%;background:var(--c);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center}
+.fl .stt{color:#C98A00;font-size:1.2rem;white-space:nowrap}
+.fl .pts{font-weight:700;white-space:nowrap}
+.tot{font-size:1.3rem;font-weight:700;margin:12px 0 4px}
+.fsmall{font-size:.75rem;opacity:.85;max-width:44em;margin:8px auto 0}
+.finlab{display:block;font-weight:700;margin:10px 0}
+.finlab input{font:inherit;padding:8px 12px;border:3px solid var(--ink);border-radius:10px;min-width:240px;max-width:100%}
+@media print{
+  body{background:#fff!important}
+  .toolbar,.nop,.skip,.confetti,dialog{display:none!important}
+  #final{overflow:visible}
+  .cert{box-shadow:none}
+}
+/* ---- locking ---- */
+.progline{font-weight:700;background:#fff;border:3px solid var(--ink);border-radius:12px;padding:8px 14px;margin:0 0 14px}
+.lvl[disabled]{cursor:not-allowed;filter:grayscale(.55);opacity:.75}
+.lvl[disabled]:hover{transform:none;filter:grayscale(.55)}
+/* ---- color and sparkle ---- */
+body{background:linear-gradient(160deg,#DDF2FF 0%,#F1E6FF 45%,#FFEFD9 100%) fixed}
+h1{background:linear-gradient(90deg,#4A5FD0,#D4509A 55%,#F0892A);-webkit-background-clip:text;background-clip:text;color:#4A5FD0;-webkit-text-fill-color:transparent}
+.btn.primary{background:linear-gradient(135deg,#5B73E8,#8E5BD6);border-color:#2E3E9E}
+.btn.primary:hover{background:linear-gradient(135deg,#4A5FD0,#7A47C4)}
+.lvl{background:var(--t,#fff);border-color:var(--c,var(--ink));border-width:4px}
+.lvl:hover{filter:brightness(.97);transform:translateY(-2px)}
+.lvl .num{background:var(--c,var(--enz));box-shadow:0 0 0 4px #fff,0 0 0 7px var(--c,var(--enz))}
+.hud>span{background:#fff;border:3px solid var(--ink);border-radius:999px;padding:2px 14px}
+.hud>span:nth-child(2){background:#FFE9A8}
+.hud>span:nth-child(3){background:#CDEFE6}
+.hud>span:nth-child(4){background:#FFD9C2}
+.hud>span:empty{display:none}
+.arenawrap{border-radius:14px;padding:0}
+.arenawrap.g1{background:linear-gradient(180deg,#D7F0FF,#EBDDFF)}
+.arenawrap.g2{background:linear-gradient(180deg,#E3F3FF,#FFE6DA)}
+.arenawrap.g3{background:linear-gradient(180deg,#DDF8EA,#FFF5CF)}
+.arenawrap.g4{background:linear-gradient(180deg,#FFE9D6,#FFD9EA)}
+.arenawrap.g5{background:linear-gradient(180deg,#FFDDEE,#E7DDFF)}
+.arenawrap.g6{background:linear-gradient(180deg,#E8DAFF,#FFD6D0)}
+.arenawrap>#arena{padding:6px}
+.rush{background:linear-gradient(180deg,#FFFFFF,#E9F5FF)}
+.card{background:var(--cb,#fff)}
+.card.ok{background:var(--goodbg)}
+.card.no{background:var(--badbg)}
+.bin:nth-child(1){background:#E5E9FF;border-color:#4A5FD0}
+.bin:nth-child(2){background:#FFE1F0;border-color:#C23C86}
+.bin:nth-child(3){background:#FFEBD2;border-color:#D9731A}
+.bin:nth-child(4){background:#D7F5EE;border-color:#12877E}
+.bin:nth-child(1) .k{background:#4A5FD0}.bin:nth-child(2) .k{background:#C23C86}.bin:nth-child(3) .k{background:#D9731A}.bin:nth-child(4) .k{background:#12877E}
+.opt:nth-child(1) .key{background:#4A5FD0}.opt:nth-child(2) .key{background:#C23C86}.opt:nth-child(3) .key{background:#D9731A}.opt:nth-child(4) .key{background:#12877E}
+.qcard,.oprompt,.meter,.odiag,.ocard{box-shadow:0 4px 0 rgba(18,49,58,.15)}
+.oprompt{background:#FFFBE6}
+.stars.pop{animation:pop .5s ease-out both,twk 1.6s .6s infinite}
+@keyframes twk{50%{filter:brightness(1.35) drop-shadow(0 0 8px #FFD400)}}
+.sp{position:absolute;pointer-events:none;z-index:8;background:var(--c,#FFD400);clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%);animation:spk .9s ease-out forwards}
+@keyframes spk{from{transform:translate(-50%,-50%) scale(1) rotate(0);opacity:1}to{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(.1) rotate(240deg);opacity:0}}
+.confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:9;border-radius:14px}
+.confetti i{position:absolute;top:-18px;width:10px;height:16px;border-radius:2px;animation:cfall linear forwards}
+@keyframes cfall{to{transform:translateY(560px) rotate(var(--r));opacity:.9}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media(max-width:560px){body{font-size:17px}h1{font-size:1.9rem}.lvl{grid-template-columns:auto 1fr}.lvl .st{grid-row:auto;grid-column:2}}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to main content</a>
+
+<header class="toolbar">
+  <button class="btn small" id="btnGloss">Word help</button>
+  <label class="tog"><input type="checkbox" id="optTts"> Read questions aloud automatically</label>
+</header>
+
+<main id="main">
+
+<section id="home" class="screen">
+  <h1>Enzyme Arcade</h1>
+  <p class="lead">Six quick games to review enzymes and digestion. You get 3 lives in each game. Pick any game to start.</p>
+  <canvas id="heroCanvas" width="760" height="380" role="img" aria-label="Animation of an enzyme breaking a substrate into two products, then building two pieces into one."></canvas>
+  <div id="finalWrap" hidden><button class="btn primary" type="button" id="btnFinal" style="margin-bottom:12px">\uD83C\uDFC6 View my final page</button></div>
+  <p class="progline" id="progLine"></p>
+  <ul class="levels" id="levelList"></ul>
+  <p class="ngss">NGSS HS-LS1-1. Science practice: constructing explanations. Core idea: LS1.A Structure and Function. Crosscutting concept: Structure and Function.</p>
+</section>
+
+<section id="game" class="screen" hidden>
+  <div class="topbar">
+    <button class="btn" id="btnBack">&larr; Back to menu</button>
+    <h2 id="gTitle"></h2>
+  </div>
+  <div class="hud" id="hud"></div>
+  <div class="arenawrap" id="arenawrap">
+    <div id="arena"></div>
+    <div class="toast" id="toast" hidden role="status"></div>
+    <div class="overlay" id="overlay" hidden></div>
+  </div>
+</section>
+
+<section id="final" class="screen" hidden>
+  <button class="btn nop" id="finBack">&larr; Back to menu</button>
+  <div class="cert" id="cert">
+    <div class="trophy" aria-hidden="true">\uD83C\uDFC6</div>
+    <h2>Enzyme Arcade Complete!</h2>
+    <p class="who" id="finNameShow"></p>
+    <p class="fdate" id="finDate"></p>
+    <p class="bigline">All 6 games finished</p>
+    <ul class="fl" id="finList"></ul>
+    <p class="tot" id="finTot"></p>
+    <p class="fsmall">NGSS HS-LS1-1. Science practice: constructing explanations. Core idea: LS1.A Structure and Function. Crosscutting concept: Structure and Function.</p>
+  </div>
+  <label class="nop finlab" for="finName">Type your name for the page: <input id="finName" type="text" maxlength="40" placeholder="Your name" autocomplete="off"></label>
+  <div class="row nop"><button class="btn primary" type="button" id="finPrint">Print or save as PDF</button><button class="btn" type="button" id="finMenu">Back to menu</button></div>
+  <p class="nop" style="font-weight:700">Show this page to your teacher.</p>
+</section>
+
+</main>
+
+<dialog id="gloss" aria-labelledby="glossTitle">
+  <h2 id="glossTitle">Word help</h2>
+  <dl id="glossList"></dl>
+  <div class="row"><button class="btn primary" id="glossClose">Close</button></div>
+</dialog>
+
+<script>
+(function(){
+'use strict';
+
+/* ---------- helpers ---------- */
+const $=(s,r)=>(r||document).querySelector(s);
+const TAU=Math.PI*2;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const ease=t=>{t=clamp(t,0,1);return t*t*(3-2*t)};
+const reduceMotion=!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+const C={teal:'#14998F',orange:'#F0892A',ink:'#12313A',hot:'#D6453D',cold:'#2F7FC9',site:'#FFF1A8',good:'#1E7A44',purple:'#8E5BD6'};
+const FONT='Verdana, Tahoma, sans-serif';
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function mix(c1,c2,t){const a=[1,3,5].map(i=>parseInt(c1.substr(i,2),16)),b=[1,3,5].map(i=>parseInt(c2.substr(i,2),16));return 'rgb('+a.map((v,i)=>Math.round(v+(b[i]-v)*t)).join(',')+')';}
+function speak(text){try{if(!('speechSynthesis' in window))return;window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.rate=.95;window.speechSynthesis.speak(u);}catch(e){}}
+function stopSpeak(){try{if('speechSynthesis' in window)window.speechSynthesis.cancel();}catch(e){}}
+
+/* ---------- drawing pieces ---------- */
+function rr(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+function piece(ctx,x,y,col,rot,alpha){ctx.save();ctx.globalAlpha=alpha==null?1:alpha;ctx.translate(x,y);ctx.rotate(rot||0);rr(ctx,-17,-17,34,34,7);ctx.fillStyle=col;ctx.fill();ctx.lineWidth=3;ctx.strokeStyle=C.ink;ctx.stroke();ctx.restore();}
+function bondDot(ctx,x,y){ctx.beginPath();ctx.arc(x,y,6,0,TAU);ctx.fillStyle='#fff';ctx.fill();ctx.lineWidth=3;ctx.strokeStyle=C.ink;ctx.stroke();}
+function chain(ctx,x,y,gap,rot,alpha){ctx.save();ctx.globalAlpha=alpha==null?1:alpha;ctx.translate(x,y);ctx.rotate(rot||0);piece(ctx,-17-gap,0,C.teal,0,1);piece(ctx,17+gap,0,C.orange,0,1);if(gap<.5)bondDot(ctx,0,0);ctx.restore();}
+function tri(ctx,x,y,rot,alpha){ctx.save();ctx.globalAlpha=alpha==null?1:alpha;ctx.translate(x,y);ctx.rotate(rot||0);ctx.beginPath();ctx.moveTo(0,-26);ctx.lineTo(38,26);ctx.lineTo(-38,26);ctx.closePath();ctx.fillStyle=C.purple;ctx.fill();ctx.lineWidth=3;ctx.lineJoin='round';ctx.strokeStyle=C.ink;ctx.stroke();ctx.restore();}
+function drop(ctx,x,y,alpha){ctx.save();ctx.globalAlpha=alpha==null?1:alpha;ctx.beginPath();ctx.arc(x,y,10,0,TAU);ctx.fillStyle='#7CC4F5';ctx.fill();ctx.lineWidth=2.5;ctx.strokeStyle=C.ink;ctx.stroke();ctx.font='bold 14px '+FONT;ctx.textAlign='left';ctx.textBaseline='middle';ctx.lineWidth=4;ctx.strokeStyle='#fff';ctx.strokeText('H\u2082O',x+14,y);ctx.fillStyle=C.ink;ctx.fillText('H\u2082O',x+14,y);ctx.restore();}
+function tag(ctx,text,x,y,align,size){ctx.save();ctx.font='bold '+(size||19)+'px '+FONT;ctx.textAlign=align||'center';ctx.textBaseline='middle';ctx.lineWidth=5;ctx.lineJoin='round';ctx.strokeStyle='#fff';ctx.strokeText(text,x,y);ctx.fillStyle=C.ink;ctx.fillText(text,x,y);ctx.restore();}
+function pointer(ctx,text,tx,ty,align,sx,sy,px,py){tag(ctx,text,tx,ty,align,20);ctx.save();ctx.lineWidth=3;ctx.strokeStyle=C.ink;ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(px,py);ctx.stroke();ctx.beginPath();ctx.arc(px,py,5,0,TAU);ctx.fillStyle=C.ink;ctx.fill();ctx.restore();}
+function floatText(ctx,f){ctx.save();ctx.globalAlpha=clamp(f.life/.5,0,1);ctx.font='bold 30px '+FONT;ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineWidth=5;ctx.strokeStyle='#fff';ctx.strokeText(f.t,f.x,f.y);ctx.fillStyle=f.c;ctx.fillText(f.t,f.x,f.y);ctx.restore();}
+
+
+const SPARK=['#FFD400','#FF6FB5','#4FD1C5','#8EA2FF','#FF9F43','#7BE07B'];
+function sparkle(ctx,x,y,r,rot,col,alpha){ctx.save();ctx.globalAlpha=alpha==null?1:alpha;ctx.translate(x,y);ctx.rotate(rot||0);ctx.beginPath();for(let i=0;i<8;i++){const rad=i%2?r*.28:r;const a=i*Math.PI/4;ctx.lineTo(Math.cos(a)*rad,Math.sin(a)*rad);}ctx.closePath();ctx.fillStyle=col;ctx.fill();ctx.lineWidth=1.5;ctx.strokeStyle='rgba(18,49,58,.5)';ctx.stroke();ctx.restore();}
+function Sparks(){
+  const list=[];
+  return{
+    burst:function(x,y,n,cols,power){const c=cols||SPARK;for(let i=0;i<n;i++){const a=Math.random()*TAU,v=(power||170)*(.4+Math.random()*.8);list.push({x:x,y:y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-40,life:.7+Math.random()*.6,r:5+Math.random()*8,rot:Math.random()*TAU,spin:(Math.random()-.5)*8,col:c[Math.floor(Math.random()*c.length)]});}},
+    update:function(dt){for(const p of list){p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=240*dt;p.vx*=.98;p.rot+=p.spin*dt;}for(let i=list.length-1;i>=0;i--)if(list[i].life<=0)list.splice(i,1);},
+    draw:function(ctx){for(const p of list){const k=Math.min(1,p.life/.4);sparkle(ctx,p.x,p.y,p.r*k,p.rot,p.col,k);}}
+  };
+}
+function twinkles(ctx,tm,W,H,seed){for(let i=0;i<16;i++){const x=((i*137+seed*59)%97)/97*W,y=((i*61+seed*23)%89)/89*(H-70);const a=.25+.75*Math.max(0,Math.sin(tm/420+i*1.7));sparkle(ctx,x,y,4+(i%3)*2.5,tm/900+i,SPARK[i%SPARK.length],a*.8);}}
+
+/* enzyme blob with an active-site pocket on top; dmg 0 = healthy, 1 = fully denatured */
+function drawEnzyme(ctx,cx,cy,dmg,tm,pulse,glow){
+  const a=108*(pulse||1),b=76*(pulse||1);
+  const pw=74*(1-.7*dmg),pd=44*(1-.5*dmg),skew=18*dmg;
+  const N=140,poly=[];let first=null,last=null,done=false;
+  for(let i=0;i<=N;i++){
+    const th=i/N*TAU;
+    const w=1+dmg*(.11*Math.sin(5*th+1)+.07*Math.sin(3*th+2))+dmg*.03*Math.sin(4*th+tm/250);
+    const x=cx+a*w*Math.cos(th),y=cy+b*w*Math.sin(th);
+    const inP=y<cy-20&&Math.abs(x-cx)<pw/2;
+    if(inP){if(!first)first={x:x,y:y};last={x:x,y:y};continue;}
+    if(first&&!done){poly.push([first.x,first.y]);poly.push([first.x+skew*.4,first.y+pd]);poly.push([last.x+skew,last.y+pd]);poly.push([last.x,last.y]);done=true;}
+    poly.push([x,y]);
+  }
+  const geom=first?{x0:first.x,x1:last.x,y0:first.y,bottom:first.y+pd,skew:skew}:{x0:cx-37,x1:cx+37,y0:cy-71,bottom:cy-27,skew:0};
+  ctx.save();
+  if(glow>0){const g=ctx.createRadialGradient(cx,geom.y0+10,5,cx,geom.y0+10,110);g.addColorStop(0,'rgba(255,225,70,'+(.85*glow)+')');g.addColorStop(1,'rgba(255,225,70,0)');ctx.fillStyle=g;ctx.fillRect(cx-130,geom.y0-110,260,240);}
+  ctx.beginPath();ctx.moveTo(geom.x0,geom.y0-10);ctx.lineTo(geom.x0,geom.y0+pd);ctx.lineTo(geom.x1+skew,geom.y0+pd);ctx.lineTo(geom.x1,geom.y0-10);ctx.closePath();ctx.fillStyle=C.site;ctx.fill();
+  ctx.beginPath();poly.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath();
+  ctx.fillStyle=mix('#5B73E8','#8C7A70',dmg);ctx.fill();
+  ctx.lineWidth=3.5;ctx.lineJoin='round';ctx.strokeStyle=C.ink;ctx.stroke();
+  ctx.restore();
+  return geom;
+}
+
+/* ---------- looping lock-and-key animation (home screen) ---------- */
+function LockKey(cv,opts){
+  const ctx=cv.getContext('2d'),W=cv.width,H=cv.height,cx=380,cy=250,BY=cy-45,HY=108;
+  const DUR={break:8,build:8};
+  let mode=opts.mode||'break',t0=null,raf=0,cycle=opts.cycle||null,cycleI=0,dead=false;
+  function render(t){
+    ctx.clearRect(0,0,W,H);const bgG=ctx.createLinearGradient(0,0,0,H);bgG.addColorStop(0,'#D7F0FF');bgG.addColorStop(1,'#F4E6FF');ctx.fillStyle=bgG;ctx.fillRect(0,0,W,H);twinkles(ctx,t*1000,W,H,0);
+    let pulse=1,glow=0,draw=null;
+    if(mode==='break'){
+      let sx=0,sy=0,gap=0,showSub=true,water=null,pL=null,pR=null,tagTxt='';
+      if(t<1.8){const k=ease(t/1.8);sx=lerp(110,cx,k);sy=lerp(80,HY,k)+Math.sin(t*5)*4;tagTxt='Substrate';}
+      else if(t<2.8){const k=ease(t-1.8);sx=cx;sy=lerp(HY,BY,k);tagTxt='Substrate';}
+      else if(t<4.4){sx=cx;sy=BY;pulse=1+.035*Math.sin((t-2.8)*14);glow=Math.min(1,(t-2.8)/.5);
+        if(t<3.6){const k=ease((t-2.8)/.8);water={x:lerp(640,cx+34,k),y:lerp(120,BY-22,k)};}
+        if(t>=3.6)gap=3*ease((t-3.6)/.4);}
+      else if(t<6){const k=ease((t-4.4)/1.6);glow=1-k;showSub=false;pL={x:lerp(cx-20,290,k),y:lerp(BY,90,k)};pR={x:lerp(cx+20,470,k),y:lerp(BY,90,k)};tagTxt='Products';}
+      else{showSub=false;pL={x:290,y:90+Math.sin(t*3)*5};pR={x:470,y:90+Math.sin(t*3+1)*5};tagTxt='Products';}
+      draw=function(){
+        if(showSub){chain(ctx,sx,sy,gap,0,1);if(t<2.8)tag(ctx,tagTxt,sx,sy-36);}
+        if(water)drop(ctx,water.x,water.y,1);
+        if(pL){piece(ctx,pL.x,pL.y,C.teal);piece(ctx,pR.x,pR.y,C.orange);tag(ctx,tagTxt,380,48);}
+      };
+    }else{
+      let ax=0,ay=0,bx=0,by=0,gap=2,joined=false,water=null,prod=null;
+      if(t<1.8){const k=ease(t/1.8);ax=lerp(110,cx-19,k);bx=lerp(650,cx+19,k);ay=lerp(80,HY,k)+Math.sin(t*5)*4;by=lerp(80,HY,k)+Math.sin(t*5+2)*4;}
+      else if(t<2.8){const k=ease(t-1.8);ax=cx-19;bx=cx+19;ay=by=lerp(HY,BY,k);}
+      else if(t<4.4){ax=cx-19;bx=cx+19;ay=by=BY;pulse=1+.035*Math.sin((t-2.8)*14);glow=Math.min(1,(t-2.8)/.5);
+        if(t>=3.4){joined=true;gap=2*(1-ease((t-3.4)/.3));}
+        if(t>=3.6){const k=ease((t-3.6)/.8);water={x:lerp(cx+10,610,k),y:lerp(BY-26,70,k),a:1-k*.6};}}
+      else if(t<6){const k=ease((t-4.4)/1.6);prod={x:cx,y:lerp(BY,90,k)};glow=1-k;}
+      else{prod={x:cx,y:90+Math.sin(t*3)*5};}
+      draw=function(){
+        if(prod){chain(ctx,prod.x,prod.y,0,0,1);tag(ctx,'Product',prod.x,prod.y-38);}
+        else if(joined){chain(ctx,cx,ay,gap,0,1);}
+        else{piece(ctx,ax,ay,C.teal);piece(ctx,bx,by,C.orange);if(t<2.8)tag(ctx,'Substrates',cx,ay-38);}
+        if(water)drop(ctx,water.x,water.y,water.a);
+      };
+    }
+    drawEnzyme(ctx,cx,cy,0,t*1000,pulse,glow);
+    draw();
+    if(t>=4.3&&t<5.9){const k=(t-4.3)/1.6;for(let i=0;i<12;i++){const ang=i*TAU/12+.3,rad=24+k*130;sparkle(ctx,cx+Math.cos(ang)*rad,BY-10+Math.sin(ang)*rad*.8,13*(1-k)+2,t*3+i,SPARK[i%6],1-k);}}
+    const rl=mode==='break'?'Hydrolysis: breaking apart':'Dehydration synthesis: building up';
+    ctx.save();ctx.font='bold 22px '+FONT;const lw=ctx.measureText(rl).width+34;rr(ctx,W/2-lw/2,4,lw,32,16);ctx.fillStyle=mode==='break'?'#BFF0EA':'#FFD9B0';ctx.fill();ctx.lineWidth=3;ctx.strokeStyle=C.ink;ctx.stroke();ctx.fillStyle=C.ink;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(rl,W/2,21);ctx.restore();
+    pointer(ctx,'Enzyme',40,338,'left',128,338,268,300);
+    pointer(ctx,'Active site',552,182,'left',544,182,420,205);
+  }
+  function tick(ts){
+    if(dead)return;
+    if(t0===null)t0=ts;
+    let t=(ts-t0)/1000;const d=DUR[mode];
+    if(t>d+.8){if(cycle){cycleI=(cycleI+1)%cycle.length;mode=cycle[cycleI];t0=ts;t=0;}else t=d;}
+    render(Math.min(t,d));
+    raf=requestAnimationFrame(tick);
+  }
+  return{
+    play:function(m){if(m)mode=m;cancelAnimationFrame(raf);t0=null;raf=requestAnimationFrame(tick);},
+    stop:function(){cancelAnimationFrame(raf);raf=0;},
+    still:function(m,t){if(m)mode=m;render(t);}
+  };
+}
+
+/* ---------- temperature lab engine (used by Thermostat Rush) ---------- */
+const RT=[[0,1],[10,2.5],[20,5.5],[30,8.5],[37,10],[45,8],[50,5],[55,2.5],[60,.5],[70,0]];
+function baseRate(T){
+  if(T<=RT[0][0])return RT[0][1];
+  for(let i=1;i<RT.length;i++){if(T<=RT[i][0]){const a=RT[i-1],b=RT[i];return lerp(a[1],b[1],(T-a[0])/(b[0]-a[0]));}}
+  return 0;
+}
+function TempLab(cv,gcv,ui){
+  const ctx=cv.getContext('2d'),gx=gcv.getContext('2d'),W=cv.width,H=cv.height,cx=380,cy=268;
+  let T=37,health=1,made=0,subs=[],prods=[],fx=[],busy=null,raf=0,last=0,tm=0,pts={},geom=null,dead=false,paused=false,drift=0,denFlag=false;
+  const sp=Sparks();
+  function inside(x,y){const ex=(x-cx)/134,ey=(y-cy)/102;return ex*ex+ey*ey<1;}
+  function spawn(edge){
+    let x,y;
+    if(edge){x=Math.random()<.5?40:W-40;y=40+Math.random()*130;}
+    else{do{x=40+Math.random()*(W-80);y=40+Math.random()*(H-80);}while(inside(x,y));}
+    return{x:x,y:y,ang:Math.random()*TAU,rot:Math.random()*TAU,spin:(Math.random()-.5)*1.5,state:'free',cool:0};
+  }
+  function init(){subs=[];for(let i=0;i<7;i++)subs.push(spawn(false));}
+  function startBind(s){s.state='bound';busy={s:s,phase:'drop',t:0,fx:s.x,fy:s.y,fr:s.rot%TAU,p:0};}
+  function update(dt){
+    tm+=dt*1000;
+    sp.update(dt);
+    if(T>50&&health>.2&&Math.random()<dt*22)sp.burst(cx+(Math.random()-.5)*190,cy+30,1,['#FF8A3D','#FFD166','#FF5A4D'],30);
+    if(T<=12&&Math.random()<dt*16)sp.burst(30+Math.random()*(W-60),16,1,['#FFFFFF','#BFE3FF','#8EC9FF'],14);
+    if(busy&&busy.phase==='work'&&Math.random()<dt*10)sp.burst(cx,(geom?geom.y0:cy-71)+6,1,['#FFE066','#FFFFFF'],40);
+    if(drift)T=clamp(T+drift*dt,0,70);
+    health=Math.max(0,health-Math.max(0,T-48)*.03*dt);
+    if(!denFlag&&health<=.55){denFlag=true;sp.burst(cx,cy-20,34,['#D6453D','#8C7A70','#FFB199','#FFD166'],220);if(ui.onDenature)ui.onDenature();if(dead)return;}
+    const rate=baseRate(T)*health,speed=16+72*Math.min(T,75)/37;
+    const ex=cx,ey=cy-96;
+    for(const s of subs){
+      if(s.state!=='free')continue;
+      s.cool=Math.max(0,s.cool-dt);
+      s.ang+=(Math.random()-.5)*5*dt;s.rot+=s.spin*dt*(.3+T/37);
+      if(!busy&&health>.55){let df=Math.atan2(ey-s.y,ex-s.x)-s.ang;df=Math.atan2(Math.sin(df),Math.cos(df));s.ang+=df*1.8*dt;}
+      s.x+=Math.cos(s.ang)*speed*dt;s.y+=Math.sin(s.ang)*speed*dt;
+      if(s.x<30){s.x=30;s.ang=Math.PI-s.ang;}if(s.x>W-30){s.x=W-30;s.ang=Math.PI-s.ang;}
+      if(s.y<30){s.y=30;s.ang=-s.ang;}if(s.y>H-30){s.y=H-30;s.ang=-s.ang;}
+      const d=Math.hypot(s.x-ex,s.y-ey);
+      if(d<52&&s.cool<=0){
+        if(!busy&&health>.55){if(Math.random()<.4){startBind(s);continue;}}
+        else{
+          s.ang=Math.atan2(s.y-ey,s.x-ex)+(Math.random()-.5)*.6;s.cool=.7;s.x+=Math.cos(s.ang)*12;s.y+=Math.sin(s.ang)*12;
+          if(health<=.55)fx.push({t:'\u2715',x:s.x,y:s.y-24,life:.7,c:C.hot});
+        }
+      }
+      const nx=(s.x-cx)/134,ny=(s.y-cy)/102,n2=nx*nx+ny*ny;
+      if(n2<1){const k=1/Math.sqrt(n2||1e-6);s.ang=Math.atan2(s.y-cy,s.x-cx)+(Math.random()-.5)*.8;s.x=cx+(s.x-cx)*k;s.y=cy+(s.y-cy)*k;}
+    }
+    if(busy){
+      const s=busy.s,bx=cx,by=(geom?geom.bottom:cy-27)-18;
+      busy.t+=dt;
+      if(busy.phase==='drop'){
+        const k=ease(busy.t/.4);s.x=lerp(busy.fx,bx,k);s.y=lerp(busy.fy,by,k);s.rot=lerp(busy.fr,0,k);
+        if(busy.t>=.4){busy.phase='work';busy.p=0;}
+      }else{
+        if(health<=.55){
+          s.state='free';s.cool=1;s.ang=-Math.PI/2+(Math.random()-.5);s.y-=20;fx.push({t:'\u2715',x:s.x,y:s.y-24,life:.8,c:C.hot});busy=null;
+        }else{
+          busy.p+=dt*rate/8;s.x=bx;s.y=by;
+          if(busy.p>=1){
+            prods.push({x:bx-20,y:by,vx:-60,vy:-85,col:C.teal,life:2.6,rot:0,spin:-1.4});
+            prods.push({x:bx+20,y:by,vx:60,vy:-85,col:C.orange,life:2.6,rot:0,spin:1.4});
+            made++;sp.burst(bx,by-20,30);fx.push({t:'+1',x:bx,y:by-60,life:1,c:C.good});fx.push({t:'Hydrolysis',x:bx,y:by-100,life:1.3,c:'#0E7C74'});
+            subs=subs.filter(q=>q!==s);subs.push(spawn(true));busy=null;
+            if(ui.onProduct)ui.onProduct();if(dead)return;
+          }
+        }
+      }
+    }
+    for(const p of prods){p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=.995;p.rot+=p.spin*dt;}
+    prods=prods.filter(p=>p.life>0);
+    for(const f of fx){f.life-=dt;f.y-=22*dt;}
+    fx=fx.filter(f=>f.life>0);
+    pts[Math.round(T)]=Math.round(rate*10)/10;
+    if(ui.onTick)ui.onTick({T:T,health:health,rate:rate,made:made},dt);
+  }
+  function statusText(){
+    if(health<=.55)return 'Denatured. The shape changed for good, so cooling it will not fix it.';
+    if(T>50)return 'Too hot! The enzyme is losing its shape.';
+    if(T>=34&&T<=40)return 'Just right. This is the fastest.';
+    if(T<=10)return 'Cold: molecules move slowly, but the enzyme is not damaged.';
+    if(T<34)return 'Warming up: faster molecules mean a faster reaction.';
+    return 'Getting hot: the enzyme is slowing down.';
+  }
+  function drawGraph(rate){
+    const gw=gcv.width,gh=gcv.height,pl=50,pb=46,pt=16,pr=14,pw=gw-pl-pr,ph=gh-pt-pb;
+    const X=v=>pl+v/70*pw,Y=v=>pt+ph-v/12*ph;
+    gx.clearRect(0,0,gw,gh);gx.fillStyle='#fff';gx.fillRect(0,0,gw,gh);
+    gx.lineWidth=1;gx.strokeStyle='#C8D8D6';gx.fillStyle=C.ink;gx.font='13px '+FONT;gx.textBaseline='middle';
+    gx.textAlign='center';
+    for(let v=0;v<=70;v+=10){gx.beginPath();gx.moveTo(X(v),pt);gx.lineTo(X(v),pt+ph);gx.stroke();gx.fillText(v,X(v),pt+ph+14);}
+    gx.textAlign='right';
+    for(let v=0;v<=12;v+=2){gx.beginPath();gx.moveTo(pl,Y(v));gx.lineTo(pl+pw,Y(v));gx.stroke();gx.fillText(v,pl-6,Y(v));}
+    gx.lineWidth=2.5;gx.strokeStyle=C.ink;gx.beginPath();gx.moveTo(pl,pt);gx.lineTo(pl,pt+ph);gx.lineTo(pl+pw,pt+ph);gx.stroke();
+    gx.font='bold 13px '+FONT;gx.textAlign='center';gx.fillText('Temperature (\u00B0C)',pl+pw/2,gh-10);
+    gx.save();gx.translate(13,pt+ph/2);gx.rotate(-Math.PI/2);gx.fillText('Rate (mg/min)',0,0);gx.restore();
+    const keys=Object.keys(pts).map(Number).sort((a,b)=>a-b);
+    if(keys.length>1){gx.lineWidth=3;gx.strokeStyle='#8FA0E8';gx.beginPath();keys.forEach((k,i)=>i?gx.lineTo(X(k),Y(pts[k])):gx.moveTo(X(k),Y(pts[k])));gx.stroke();}
+    gx.fillStyle='#4A5FD0';
+    keys.forEach(k=>{gx.beginPath();gx.arc(X(k),Y(pts[k]),3.5,0,TAU);gx.fill();});
+    gx.lineWidth=3;gx.strokeStyle=C.ink;gx.fillStyle='#FFD400';gx.beginPath();gx.arc(X(T),Y(Math.min(rate,12)),7,0,TAU);gx.fill();gx.stroke();
+  }
+  function draw(){
+    const dmg=1-health,rate=baseRate(T)*health;
+    const bg=T<37?mix('#D2E8FA','#EDF6F1',T/37):mix('#EDF6F1','#FAD3C8',(T-37)/33);
+    ctx.clearRect(0,0,W,H);ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);twinkles(ctx,tm,W,H,1);
+    const working=busy&&busy.phase==='work';
+    geom=drawEnzyme(ctx,cx,cy,dmg,tm,working?1+.03*Math.sin(tm/80):1,working?.9:0);
+    const jit=T<=5?0:T/37*1.3;
+    for(const s of subs){
+      const jx=(Math.random()-.5)*jit*2,jy=(Math.random()-.5)*jit*2;
+      let gap=0;if(busy&&busy.s===s&&busy.phase==='work')gap=3*ease((busy.p-.7)/.3);
+      chain(ctx,s.x+jx,s.y+jy,gap,s.state==='free'?s.rot:0,1);
+    }
+    for(const p of prods){piece(ctx,p.x,p.y,p.col,p.rot,clamp(p.life/1.2,0,1));}
+    for(const f of fx)floatText(ctx,f);
+    sp.draw(ctx);
+    ctx.save();ctx.globalAlpha=.9;rr(ctx,14,12,150,56,12);ctx.fillStyle='#fff';ctx.fill();ctx.lineWidth=3;ctx.strokeStyle=C.ink;ctx.stroke();ctx.restore();
+    ctx.font='bold 32px '+FONT;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=T>50?C.hot:(T<=10?C.cold:C.ink);ctx.fillText(Math.round(T)+'\u00B0C',89,41);
+    pointer(ctx,'Enzyme',40,352,'left',128,352,268,318);
+    pointer(ctx,dmg>.45?'Bent active site':'Active site',560,196,'left',552,196,421,222);
+    drawGraph(rate);
+    if(ui.onFrame)ui.onFrame({T:T,health:health,rate:rate,made:made,text:statusText()});
+  }
+  function loop(ts){
+    if(dead)return;
+    const dt=last?Math.min(.05,(ts-last)/1000):.016;last=ts;
+    if(!paused)update(dt);
+    if(dead)return;
+    draw();
+    raf=requestAnimationFrame(loop);
+  }
+  init();
+  raf=requestAnimationFrame(loop);
+  return{
+    setT:function(v){T=clamp(Number(v)||0,0,70);},
+    getT:function(){return T;},
+    setDrift:function(v){drift=v;},
+    setPaused:function(p){paused=!!p;last=0;},
+    fresh:function(){health=1;denFlag=false;if(busy){busy.s.state='free';busy.s.cool=1;busy=null;}},
+    destroy:function(){dead=true;cancelAnimationFrame(raf);}
+  };
+}
+
+/* ---------- digestive diagram ---------- */
+const ORG={mouth:'Mouth',esophagus:'Esophagus',stomach:'Stomach',liver:'Liver',gall:'Gall bladder',pancreas:'Pancreas',small:'Small intestine',large:'Large intestine'};
+function organSVG(o){
+  o=o||{};const hl=o.hl;
+  const clear='rgba(0,0,0,.001)';
+  function g(id,inner,hit){return '<g class="organ'+(hl===id?' hl':'')+'" data-id="'+id+'"'+(o.pick?' tabindex="0" role="button" aria-label="'+ORG[id]+'"':'')+'>'+(hit||'')+inner+'</g>';}
+  const pLarge='M84 362 L84 278 L216 278 L216 362';
+  const pSmall='M118 298 H182 C194 298 194 314 182 314 H118 C106 314 106 330 118 330 H182 C194 330 194 346 182 346 H130';
+  const pEso='M150 56 C142 90 158 112 150 152';
+  return '<svg viewBox="0 0 300 380" class="'+(o.pick?'pick ':'')+(hl?'has-hl':'')+'" role="img" aria-label="Diagram of the digestive system">'+
+  g('large','<path d="'+pLarge+'" stroke="#B5694A" stroke-width="18" fill="none" stroke-linejoin="round" stroke-linecap="round"/>','<path d="'+pLarge+'" stroke="'+clear+'" stroke-width="34" fill="none" stroke-linejoin="round" stroke-linecap="round"/>')+
+  g('small','<path d="'+pSmall+'" stroke="#E58BB0" stroke-width="11" fill="none" stroke-linecap="round"/>','<path d="'+pSmall+'" stroke="'+clear+'" stroke-width="26" fill="none" stroke-linecap="round"/>')+
+  g('esophagus','<path d="'+pEso+'" stroke="#D98A6A" stroke-width="14" fill="none" stroke-linecap="round"/>','<path d="'+pEso+'" stroke="'+clear+'" stroke-width="34" fill="none" stroke-linecap="round"/>')+
+  g('mouth','<path d="M104 30 Q150 4 196 30 Q150 64 104 30Z" fill="#E88C9A" stroke="#12313A" stroke-width="3"/><path d="M110 31 Q150 42 190 31" fill="none" stroke="#7A2431" stroke-width="3"/>')+
+  g('pancreas','<path d="M126 240 C165 228 205 232 234 244 C232 258 168 262 126 254Z" fill="#E8C14F" stroke="#12313A" stroke-width="3"/>')+
+  g('liver','<path d="M50 164 C80 146 138 154 152 178 C142 208 100 218 66 204 C46 194 42 176 50 164Z" fill="#A5583A" stroke="#12313A" stroke-width="3"/>')+
+  g('gall','<ellipse cx="118" cy="214" rx="9" ry="14" fill="#5FA34B" stroke="#12313A" stroke-width="3"/>','<circle cx="118" cy="214" r="20" fill="'+clear+'"/>')+
+  g('stomach','<path d="M146 148 C190 146 222 168 216 204 C210 240 168 248 156 226 C148 212 160 202 170 200 C148 190 136 168 146 148Z" fill="#E7A0A0" stroke="#12313A" stroke-width="3"/>')+
+  '</svg>';
+}
+
+/* ---------- questions (from the 3.2 quiz and the Enzyme and Digestion Practice sheet) ---------- */
+const Q=(q,c,w,e)=>({q:q,c:c,w:w,e:e});
+const TF=(q,c,e)=>({q:q,c:c,w:[c==='True'?'False':'True'],e:e,tf:true});
+const CONDENSE='Condensation (dehydration synthesis)';
+const L1=[
+ Q('What is the name of the pocket on the enzyme where the substrate fits?','Active site',['Substrate','Product','Amino acid'],'The active site is the pocket on the enzyme. Its shape matches the substrate.'),
+ Q('A good analogy for how a substrate and an enzyme fit together is...','a lock and a key',['a flower and a bee','a tree and a branch','a square peg in a round hole'],'Only the right key fits a lock. Only the right substrate fits an enzyme\u2019s active site.'),
+ Q('Enzymes belong to which group of macromolecules?','Proteins',['Carbohydrates','Lipids','Nucleic acids'],'Enzymes are proteins. They are long chains of amino acids folded into a special shape.'),
+ TF('True or False: Enzymes are used up in the reaction and cannot be reused.','False','The enzyme comes out of the reaction unchanged and can work again.'),
+ Q('What happens when a substrate with a different shape reaches the active site?','It does not fit, so no reaction happens',['It fits anyway and turns into products','The enzyme changes shape to fit it','The enzyme is destroyed'],'A substrate that does not match the active site cannot bind, so nothing happens.'),
+ Q('Which reaction breaks bonds to make smaller molecules?','Hydrolysis',[CONDENSE,'Denaturation','Active site'],'Hydrolysis uses water to break a large molecule into smaller ones. Digestion is mostly hydrolysis.'),
+ Q('Which reaction forms bonds to build a larger molecule?',CONDENSE,['Hydrolysis','Denaturation','Active site'],'Condensation joins small molecules into a larger one and removes water. Building muscle and storing fat use it.'),
+ Q('Enzymes are biological ____ that speed up chemical reactions.','catalysts',['substrates','products','amino acids'],'A catalyst speeds up a reaction without being used up.')
+];
+const L2=[
+ Q('At which temperature did the enzyme work the fastest?','37\u00B0C (body temperature)',['0\u00B0C','20\u00B0C','60\u00B0C'],'The rate peaked at 37\u00B0C. This is the enzyme\u2019s optimum temperature.'),
+ Q('About what was the rate at 37\u00B0C?','About 10 mg/min',['About 1 mg/min','About 0.5 mg/min','About 25 mg/min'],'At 37\u00B0C the rate was about 10 mg/min, the highest on the graph.'),
+ Q('About what was the rate at 0\u00B0C?','About 1 mg/min, much slower than at 37\u00B0C',['About 10 mg/min, the same as at 37\u00B0C','Exactly 0, because the enzyme was destroyed','About 25 mg/min'],'Cold molecules move slowly, so the reaction is slow. The enzyme is still there.'),
+ Q('What does cold do to an enzyme?','It slows it down but does not destroy it',['It denatures it for good','It makes it work faster','It turns it into a substrate'],'Cold slows the molecules down. Warm the enzyme up again and it works normally.'),
+ Q('What was the rate at 60\u00B0C, and why?','Near 0, because heat denatured the enzyme',['About 10, because heat speeds up enzymes forever','About 1, because the enzyme was frozen','Near 0, because the substrate ran out'],'Heat changed the enzyme\u2019s shape. The active site no longer fit, so the substrate bounced off.'),
+ Q('What is denaturation?','The enzyme\u2019s shape changes so the active site no longer fits the substrate',['The enzyme joins two substrates together','The enzyme is recycled by the body','The substrate changes into products'],'When an enzyme denatures, it unfolds or bends out of shape and cannot bind its substrate.'),
+ Q('You cool a denatured enzyme back down to 37\u00B0C. What happens?','Nothing. Denaturation cannot be undone',['It works again at full speed','It works again at half speed','It turns into a new enzyme'],'A denatured enzyme stays broken even after it cools.'),
+ TF('True or False: When an enzyme\u2019s active site is damaged, it is called a denatured enzyme.','True','A damaged active site means the shape has changed. That is denaturation.'),
+ Q('What can denature an enzyme?','Temperature or pH far from its best range',['Eating more food','Adding more substrate','Cooling it to 20\u00B0C'],'Extreme heat or a pH that is too high or low changes the enzyme\u2019s shape.')
+];
+const L3=[
+ Q('Which organ is the main site of water absorption?','Large intestine',['Stomach','Small intestine','Mouth'],'The large intestine absorbs water and forms solid waste.'),
+ Q('Which organ is the main site of nutrient absorption?','Small intestine',['Stomach','Large intestine','Esophagus'],'Most nutrients move into the blood through the walls of the small intestine.'),
+ Q('Which organ contains acid and enzymes to help digest food?','Stomach',['Esophagus','Large intestine','Gall bladder'],'Stomach acid and the enzyme pepsin begin breaking down protein.'),
+ Q('Which enzyme breaks down starch?','Amylase',['Protease','Lipase','Sucrase'],'Amylase breaks starch into sugars. It is in saliva and in the small intestine.'),
+ Q('Lipase breaks down which nutrient?','Fats (lipids)',['Starch','Proteins','Sucrose (sugar)'],'Lipase breaks fats into smaller pieces the body can absorb.'),
+ Q('An athlete wants to lose weight. Which enzyme reaction is he trying to speed up?','Hydrolysis',[CONDENSE,'Denaturation','Fat-building'],'Breaking down stored fat is hydrolysis. Large molecules are split into smaller ones.'),
+ Q('A bear eats a lot before hibernating so she can store fat. Which reaction is she influencing?',CONDENSE,['Hydrolysis','Protein breakdown','Denaturation'],'Storing fat means building a larger molecule. That is dehydration synthesis (condensation).')
+];
+const EXTRA=[
+ Q('Enzymes are ____ by the body.','recycled',['destroyed','not used at all','none of the above'],'The body reuses enzymes. They are not used up in a reaction.'),
+ Q('Which enzyme breaks down proteins?','Protease',['Amylase','Lipase','Sucrase'],'Protease breaks proteins into amino acids.'),
+ Q('Sucrase breaks down which nutrient?','Sucrose (sugar)',['Starch','Proteins','Fats (lipids)'],'Sucrase splits sucrose, which is table sugar.'),
+ Q('Food travels through which of these organs?','Esophagus',['Liver','Gall bladder','Pancreas'],'Food never enters the liver, gall bladder, or pancreas. They make or store helpers like bile and enzymes.'),
+ Q('Where do both mechanical and chemical digestion begin?','Mouth',['Esophagus','Large intestine','Gall bladder'],'Teeth chew food (mechanical) and saliva amylase starts breaking down starch (chemical).'),
+ Q('Which is another factor that affects enzyme activity?','pH (how acidic or basic it is)',['The color of the substrate','The time of day','The size of the test tube'],'Temperature, pH, and the amount of enzyme or substrate all affect the rate.'),
+ Q('What happens to the rate as temperature rises from 0\u00B0C to 37\u00B0C?','It increases',['It decreases','It stays the same','It drops to zero'],'Warmer molecules move faster and bump into enzymes more often.')
+];
+
+/* ---------- glossary ---------- */
+const GLOSS=[
+ ['Enzyme','A protein that speeds up a chemical reaction.'],
+ ['Catalyst','Something that speeds up a reaction and is not used up.'],
+ ['Substrate','The molecule an enzyme works on.'],
+ ['Active site','The pocket on the enzyme where the substrate fits.'],
+ ['Product','What the substrate becomes after the reaction.'],
+ ['Hydrolysis','A reaction that breaks a big molecule into smaller ones, using water.'],
+ ['Condensation (dehydration synthesis)','A reaction that joins small molecules into a bigger one and removes water.'],
+ ['Denature','To change an enzyme\u2019s shape so the active site no longer fits.'],
+ ['Optimum','The best condition. Best temperature means the enzyme works fastest.'],
+ ['Rate','How fast a reaction happens. Here it is measured in mg per minute.'],
+ ['Protein','A large molecule made of amino acids.'],
+ ['Amino acids','The small building blocks of proteins.'],
+ ['Mechanical digestion','Physically breaking food into smaller pieces, like chewing.'],
+ ['Chemical digestion','Using enzymes to break food into molecules.'],
+ ['Bile','A liquid from the liver that breaks fat into tiny droplets.']
+];
+
+/* ---------- game shell ---------- */
+const S={stars:{},done:{},scores:{},name:'',tts:false};
+function allDone(){return [1,2,3,4,5,6].every(n=>S.done[n]);}
+function bossOpen(){return [1,2,3,4,5].every(n=>S.done[n]);}
+function isLocked(n){if(allDone())return false;if(S.done[n])return true;return n===6&&!bossOpen();}
+function nextUnfinished(n){for(let i=1;i<=6;i++){const k=((n-1+i)%6)+1;if(!S.done[k]&&!isLocked(k))return k;}return 0;}
+function saveProg(){try{sessionStorage.setItem('enzymeArcade',JSON.stringify({d:S.done,s:S.stars,sc:S.scores,nm:S.name}));}catch(e){}}
+function loadProg(){try{if(location.hash==='#reset'){sessionStorage.removeItem('enzymeArcade');return;}const j=JSON.parse(sessionStorage.getItem('enzymeArcade')||'null');if(j){S.done=j.d||{};S.stars=j.s||{};S.scores=j.sc||{};S.name=j.nm||'';}}catch(e){}}
+let G=null,hero=null,lastQ=null,toastTimer=0;
+const arena=$('#arena'),overlay=$('#overlay'),toastEl=$('#toast'),hudEl=$('#hud'),wrap=$('#arenawrap');
+
+function show(id){['home','game','final'].forEach(s=>{$('#'+s).hidden=(s!==id);});window.scrollTo(0,0);}
+function starsText(n){return '\u2605'.repeat(n)+'\u2606'.repeat(3-n);}
+function hud(){
+  if(!G)return;
+  const def=GAMES[G.n];
+  hudEl.innerHTML='<span class="hearts" role="img" aria-label="Lives: '+G.lives+' of 3">'+'\u2764'.repeat(Math.max(0,G.lives))+'\u2661'.repeat(3-Math.max(0,G.lives))+'</span><span>Score: '+G.score+'</span><span>'+def.goalLabel+': '+G.prog+' / '+G.goal+'</span><span id="hudExtra">'+(G.extra||'')+'</span>';
+}
+function hideOverlay(){overlay.hidden=true;overlay.innerHTML='';}
+function toast(text,kind,ms){
+  clearTimeout(toastTimer);toastEl.textContent=text;toastEl.className='toast '+(kind||'');toastEl.hidden=false;
+  toastTimer=setTimeout(()=>{toastEl.hidden=true;},ms||4500);
+}
+
+function sparkleAt(el,n){
+  if(reduceMotion||!el||!wrap)return;
+  const r=el.getBoundingClientRect(),w=wrap.getBoundingClientRect();
+  const cx=r.left-w.left+r.width/2,cy=r.top-w.top+r.height/2;
+  for(let i=0;i<(n||14);i++){
+    const s=document.createElement('span');s.className='sp';
+    const a=Math.random()*TAU,d=40+Math.random()*70,sz=8+Math.random()*10;
+    s.style.left=cx+'px';s.style.top=cy+'px';s.style.width=sz+'px';s.style.height=sz+'px';
+    s.style.setProperty('--dx',Math.cos(a)*d+'px');s.style.setProperty('--dy',Math.sin(a)*d+'px');s.style.setProperty('--c',SPARK[i%SPARK.length]);
+    wrap.appendChild(s);setTimeout(()=>{if(s.parentNode)s.parentNode.removeChild(s);},950);
+  }
+}
+function confetti(host){
+  if(reduceMotion)return;host=host||wrap;
+  const box=document.createElement('div');box.className='confetti';
+  for(let i=0;i<70;i++){const c=document.createElement('i');c.style.left=Math.random()*100+'%';c.style.background=SPARK[i%SPARK.length];c.style.animationDelay=Math.random()*1.2+'s';c.style.animationDuration=(2+Math.random()*1.6)+'s';c.style.setProperty('--r',(Math.random()*720-360)+'deg');box.appendChild(c);}
+  host.appendChild(box);setTimeout(()=>{if(box.parentNode)box.parentNode.removeChild(box);},4400);
+}
+function hurt(){wrap.classList.remove('hurt');void wrap.offsetWidth;wrap.classList.add('hurt');}
+
+/* one question, used for power-ups and the boss */
+function renderQuestion(box,q,o,done){
+  lastQ=q;
+  const opts=q.tf?['True','False']:shuffle([q.c].concat(q.pick?shuffle(q.w).slice(0,q.pick):q.w));
+  box.innerHTML='<div class="qmeta"><span>Choose one answer.</span><button class="btn small" type="button" data-r>&#128266; Read to me</button></div><div class="qtext"></div><div class="opts"></div><div class="fbbox"></div>';
+  box.querySelector('.qtext').textContent=q.q;
+  const ob=box.querySelector('.opts');let answered=false;
+  const readText=()=>q.q+'. '+opts.map((t,i)=>'ABCD'[i]+'. '+t).join('. ');
+  opts.forEach((t,i)=>{
+    const b=document.createElement('button');b.type='button';b.className='opt';b.dataset.v=t;
+    b.innerHTML='<span class="key">'+'ABCD'[i]+'</span><span></span>';b.lastChild.textContent=t;
+    b.addEventListener('click',()=>{
+      if(answered)return;answered=true;stopSpeak();
+      const ok=t===q.c;
+      if(ok)sparkleAt(b,12);
+      ob.querySelectorAll('.opt').forEach(x=>{x.disabled=true;if(x.dataset.v===q.c)x.classList.add('right');else if(x===b)x.classList.add('wrong');});
+      if(o&&o.onAnswer)o.onAnswer(ok);
+      const fb=box.querySelector('.fbbox');
+      fb.innerHTML='<div class="fb '+(ok?'good':'bad')+'"><span class="h"></span><p class="x"></p></div><div class="row"><button class="btn primary" type="button" data-n></button></div>';
+      fb.querySelector('.h').textContent=ok?'Correct!':'Not quite. The answer is: '+q.c;
+      fb.querySelector('.x').textContent=q.e;
+      const nb=fb.querySelector('[data-n]');nb.textContent=(o&&o.next)||'Continue';
+      nb.addEventListener('click',()=>done(ok));nb.focus();
+    });
+    ob.appendChild(b);
+  });
+  box.querySelector('[data-r]').addEventListener('click',()=>speak(readText()));
+  if(S.tts)speak(readText());
+}
+
+const api={
+  over:()=>!G||G.over,
+  gain(p){if(!G)return;G.score+=p;hud();},
+  progress(){if(!G||G.over)return;G.prog++;hud();if(G.prog>=G.goal)endGame(true);},
+  hit(note){
+    if(!G||G.over)return;
+    if(note&&G.review.indexOf(note)<0)G.review.push(note);
+    G.lives--;hud();hurt();
+    if(G.lives<=0)endGame(false,'You ran out of lives.');
+  },
+  lose(reason,note){if(!G||G.over)return;if(note&&G.review.indexOf(note)<0)G.review.push(note);G.lives=0;hud();endGame(false,reason);},
+  extra(t){if(!G)return;G.extra=t;const e=$('#hudExtra');if(e)e.textContent=t;},
+  toast:toast,
+  ask(pool,cb){
+    if(!G||G.over){return;}
+    G.asked=G.asked||[];
+    let avail=pool.filter(q=>G.asked.indexOf(q)<0);if(!avail.length){G.asked=[];avail=pool;}
+    const q=avail[Math.floor(Math.random()*avail.length)];G.asked.push(q);
+    overlay.hidden=false;
+    overlay.innerHTML='<div class="ocard"><h3>Power-up question!</h3><p>Answer right to earn 50 bonus points and a bonus life (up to 3).</p><div id="oq"></div></div>';
+    renderQuestion($('#oq'),q,{next:'Back to the game',onAnswer:ok=>{
+      if(ok){G.score+=50;if(G.lives<3)G.lives++;hud();}
+      else if(G.review.indexOf(q.q+' Answer: '+q.c+'.')<0)G.review.push(q.q+' Answer: '+q.c+'.');
+    }},ok=>{hideOverlay();cb&&cb(ok);});
+  }
+};
+
+function stopMod(){if(G&&G.mod&&G.mod.stop){try{G.mod.stop();}catch(e){}}if(G)G.mod=null;}
+function endGame(win,reason){
+  if(!G||G.over)return;
+  G.over=true;stopMod();stopSpeak();
+  const stars=win?clamp(G.lives,1,3):0;
+  if(win){if(S.stars[G.n]==null||stars>S.stars[G.n])S.stars[G.n]=stars;S.done[G.n]=true;S.scores[G.n]=Math.max(S.scores[G.n]||0,G.score);saveProg();}
+  const done=allDone(),nextN=win?nextUnfinished(G.n):0,canAgain=!win||done;
+  overlay.hidden=false;
+  overlay.innerHTML='<div class="ocard"><h3></h3><div class="stars pop"></div><p class="sc" style="font-weight:700"></p><div class="rv"></div><p class="lk" style="font-weight:700"></p><div class="row">'+(canAgain?'<button class="btn '+(win?'':'primary')+'" type="button" id="againBtn">'+(win?'Replay this game':'Try again')+'</button>':'')+(win&&nextN?'<button class="btn primary" type="button" id="nextBtn">Next unfinished game</button>':'')+(win&&done?'<button class="btn primary" type="button" id="finalBtn">\uD83C\uDFC6 See my final page</button>':'')+'<button class="btn" type="button" id="menuBtn">Back to menu</button></div></div>';
+  overlay.querySelector('h3').textContent=win?'You did it!':'Game over';
+  const st=overlay.querySelector('.stars');st.textContent=starsText(stars);st.setAttribute('aria-label',stars+' of 3 stars');
+  overlay.querySelector('.sc').textContent=(win?'You finished with '+G.lives+' '+(G.lives===1?'life':'lives')+' left. ':(reason||'')+' ')+'Score: '+G.score+'.';
+  if(G.review.length){
+    const rv=overlay.querySelector('.rv');rv.innerHTML='<div class="review"><strong>Remember:</strong><ul></ul></div>';
+    const ul=rv.querySelector('ul');G.review.slice(0,6).forEach(t=>{const li=document.createElement('li');li.textContent=t;ul.appendChild(li);});
+  }
+  if(win){confetti();sparkleAt(overlay.querySelector('.stars'),26);}
+  const lk=overlay.querySelector('.lk');
+  if(win)lk.textContent=done?'You finished all six games! Every game is unlocked, so you can replay any of them.':'This game is now finished and locked. Finish all six games to unlock replays.';
+  else lk.remove();
+  const n=G.n;
+  const ab=$('#againBtn');if(ab)ab.addEventListener('click',()=>openGame(n));
+  const nb=$('#nextBtn');if(nb)nb.addEventListener('click',()=>openGame(nextN));
+  $('#menuBtn').addEventListener('click',goHome);
+  const fb=$('#finalBtn');if(fb)fb.addEventListener('click',openFinal);
+  (fb||nb||$('#menuBtn')).focus();
+}
+function destroyGame(){[].forEach.call(document.querySelectorAll('.confetti,.sp'),e=>{if(e.parentNode)e.parentNode.removeChild(e);});stopMod();G=null;stopSpeak();clearTimeout(toastTimer);toastEl.hidden=true;hideOverlay();arena.innerHTML='';}
+function goHome(){destroyGame();renderHome();show('home');if(hero){if(reduceMotion)hero.still('break',3.2);else hero.play('break');}}
+
+function openFinal(){
+  if(!allDone())return;
+  destroyGame();if(hero)hero.stop();
+  const FC=[['#4A5FD0','#E5E9FF'],['#D9482F','#FFE3DC'],['#1B9A6D','#DDF6EC'],['#D9731A','#FFEBD2'],['#C23C86','#FFE1F0'],['#7A47C4','#EDE3FF']];
+  const inp=$('#finName');inp.value=S.name||'';
+  const showName=()=>{$('#finNameShow').textContent=(S.name||'').trim()||'Your name';};showName();
+  inp.oninput=()=>{S.name=inp.value;showName();saveProg();};
+  $('#finDate').textContent=new Date().toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'});
+  const ul=$('#finList');ul.innerHTML='';let ts=0,tp=0;
+  [1,2,3,4,5,6].forEach(n=>{
+    const st=S.stars[n]||1,sc=S.scores[n]||0;ts+=st;tp+=sc;
+    const li=document.createElement('li');li.style.setProperty('--c',FC[n-1][0]);li.style.setProperty('--t',FC[n-1][1]);
+    li.innerHTML='<span class="n"></span><span class="nm"></span><span class="stt"></span><span class="pts"></span>';
+    li.querySelector('.n').textContent=n;li.querySelector('.nm').textContent=GAMES[n].name;
+    const se=li.querySelector('.stt');se.textContent=starsText(st);se.setAttribute('aria-label',st+' of 3 stars');
+    li.querySelector('.pts').textContent=sc+' pts';ul.appendChild(li);
+  });
+  $('#finTot').textContent='Total: '+ts+' of 18 stars and '+tp+' points';
+  show('final');
+  confetti($('#final'));
+}
+function openGame(n){
+  if(isLocked(n))return;
+  destroyGame();if(hero)hero.stop();
+  const def=GAMES[n];
+  G={n:n,lives:3,score:0,prog:0,goal:def.goal,over:false,review:[],extra:'',mod:null,asked:[]};
+  show('game');
+  wrap.className='arenawrap g'+n;
+  $('#gTitle').textContent='Game '+n+': '+def.name;
+  G.mod=def.make(arena,api);
+  hud();
+  overlay.hidden=false;
+  overlay.innerHTML='<div class="ocard"><h3></h3><p class="how" style="font-weight:700"></p><button class="btn primary" type="button" id="goBtn">Start</button></div>';
+  overlay.querySelector('h3').textContent=def.name;
+  overlay.querySelector('.how').textContent=def.howto;
+  const go=$('#goBtn');go.addEventListener('click',()=>{hideOverlay();if(G&&G.mod)G.mod.start();});
+  go.focus();
+}
+
+/* ---------- Game 1: Lock and Key Catch ---------- */
+function makeCatch(box){
+  box.innerHTML='<canvas id="gcv" width="760" height="440" style="touch-action:none;cursor:ew-resize" role="img" aria-label="Game: slide the enzyme left and right to catch the matching substrate and dodge other shapes."></canvas>';
+  const cv=$('#gcv'),ctx=cv.getContext('2d'),W=760,H=440;
+  const SC=.8,CY=372,PTOP=CY-71*SC,PBOT=CY-27*SC,A=108*SC,B=76*SC,PW=37*SC;
+  let ex=380,tx=380,items=[],prods=[],fx=[],raf=0,last=0,tm=0,spawnT=.6,sinceKey=0,running=false,paused=false,busyItem=null,dead=false;
+  const keys={l:false,r:false},sparks=Sparks();
+  const WRONG=['tri','circle','diamond'];
+  const SIZES={key:{hw:27,hh:14},tri:{hw:30,hh:21},circle:{hw:24,hh:24},diamond:{hw:27,hh:27}};
+  function ptr(e){const r=cv.getBoundingClientRect();tx=clamp((e.clientX-r.left)/r.width*W,80,W-80);}
+  cv.addEventListener('pointermove',ptr);cv.addEventListener('pointerdown',ptr);
+  function kd(e){if(e.target&&/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;if(e.key==='ArrowLeft'||e.key==='a'){keys.l=true;e.preventDefault();}if(e.key==='ArrowRight'||e.key==='d'){keys.r=true;e.preventDefault();}}
+  function ku(e){if(e.key==='ArrowLeft'||e.key==='a')keys.l=false;if(e.key==='ArrowRight'||e.key==='d')keys.r=false;}
+  document.addEventListener('keydown',kd);document.addEventListener('keyup',ku);
+  function spawn(){
+    let kind;
+    if(sinceKey>=2||Math.random()<.55){kind='key';sinceKey=0;}else{kind=WRONG[Math.floor(Math.random()*WRONG.length)];sinceKey++;}
+    const z=SIZES[kind];
+    items.push({kind:kind,x:60+Math.random()*(W-120),y:-30,state:'fall',rot:kind==='key'?0:Math.random()*TAU,spin:kind==='key'?0:(Math.random()-.5)*1.4,hw:z.hw,hh:z.hh,t:0,life:1.2,vx:0,vy:0,fx:0,fy:0});
+  }
+  function rejectWrong(it){
+    it.state='out';it.vx=(it.x<ex?-1:1)*170;it.vy=-150;it.life=1;
+    fx.push({t:'\u2715',x:it.x,y:it.y-30,life:.9,c:C.hot});sparks.burst(it.x,it.y,14,['#D6453D','#8E5BD6','#FFB199'],150);
+    toast('That shape does not fit the active site. Only the matching substrate fits, like a key in a lock.','bad');
+    api.hit('Only a substrate with the matching shape fits the active site (lock and key).');
+  }
+  function update(dt){
+    tm+=dt*1000;sparks.update(dt);
+    if(keys.l)tx-=520*dt;if(keys.r)tx+=520*dt;tx=clamp(tx,80,W-80);
+    ex+=(tx-ex)*Math.min(1,dt*14);
+    spawnT-=dt;
+    if(spawnT<=0){spawn();spawnT=Math.max(.85,1.35-.03*G.prog)+Math.random()*.3;}
+    const spd=Math.min(190,85+7*G.prog);
+    for(const it of items){
+      if(it.state==='fall'){
+        it.y+=spd*(it.kind==='key'?1:.9)*dt;it.rot+=it.spin*dt;
+        if(it.kind==='key'&&Math.random()<dt*16)sparks.burst(it.x+(Math.random()-.5)*40,it.y,1,['#FFE066','#FFFFFF','#9FF3E8'],18);
+        const dx=Math.abs(it.x-ex);
+        if(it.kind==='key'&&dx<=20&&!busyItem){
+          if(it.y+it.hh>=PTOP+2){it.state='drop';it.t=0;it.fx=it.x;it.fy=it.y;busyItem=it;}
+        }else if(dx<A+it.hw*.5){
+          const sy=CY-B*Math.sqrt(Math.max(0,1-Math.pow(Math.min(dx,A)/A,2)));
+          if(it.y+it.hh>=sy){
+            if(it.kind==='key'){it.state='out';it.vx=(it.x<ex?-1:1)*140;it.vy=-120;it.life=1.2;}
+            else{rejectWrong(it);if(dead)return;}
+          }
+        }
+      }else if(it.state==='drop'){
+        it.t+=dt;const k=ease(it.t/.2);it.x=lerp(it.fx,ex,k);it.y=lerp(it.fy,PBOT-it.hh,k);
+        if(it.t>=.2){it.state='work';it.t=0;}
+      }else if(it.state==='work'){
+        it.x=ex;it.y=PBOT-it.hh;it.t+=dt;
+        if(it.t>=.45){
+          prods.push({x:ex-20,y:it.y,vx:-80,vy:-130,col:C.teal,life:1.6,rot:0,spin:-2});
+          prods.push({x:ex+20,y:it.y,vx:80,vy:-130,col:C.orange,life:1.6,rot:0,spin:2});
+          fx.push({t:'+10',x:ex,y:it.y-50,life:1,c:C.good});fx.push({t:'Hydrolysis!',x:clamp(ex,110,W-110),y:it.y-92,life:1.3,c:'#0E7C74'});sparks.burst(ex,it.y-10,32);
+          it.state='gone';busyItem=null;
+          api.gain(10);api.progress();
+          if(dead)return;
+          if(!api.over()&&G.prog<G.goal&&G.prog%3===0){paused=true;api.ask(L1,()=>{paused=false;last=0;});}
+        }
+      }else if(it.state==='out'){
+        it.x+=it.vx*dt;it.y+=it.vy*dt;it.vy+=420*dt;it.rot+=3*dt;it.life-=dt;
+      }
+    }
+    items=items.filter(it=>it.state!=='gone'&&it.life>0&&it.y<H+60);
+    for(const p of prods){p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=260*dt;p.rot+=p.spin*dt;}
+    prods=prods.filter(p=>p.life>0);
+    for(const f of fx){f.life-=dt;f.y-=24*dt;}
+    fx=fx.filter(f=>f.life>0);
+  }
+  function drawItem(it){
+    ctx.save();ctx.globalAlpha=it.state==='out'?clamp(it.life/.5,0,1):1;ctx.translate(it.x,it.y);ctx.scale(SC,SC);
+    if(it.kind==='key')chain(ctx,0,0,0,0,1);
+    else if(it.kind==='tri')tri(ctx,0,0,it.rot,1);
+    else if(it.kind==='circle'){ctx.rotate(it.rot);ctx.beginPath();ctx.arc(0,0,30,0,TAU);ctx.fillStyle='#E4569A';ctx.fill();ctx.lineWidth=3;ctx.strokeStyle=C.ink;ctx.stroke();ctx.beginPath();ctx.arc(-9,-9,6,0,TAU);ctx.fillStyle='rgba(255,255,255,.7)';ctx.fill();}
+    else{ctx.rotate(it.rot);ctx.beginPath();ctx.moveTo(0,-34);ctx.lineTo(34,0);ctx.lineTo(0,34);ctx.lineTo(-34,0);ctx.closePath();ctx.fillStyle='#D9C436';ctx.fill();ctx.lineWidth=3;ctx.lineJoin='round';ctx.strokeStyle=C.ink;ctx.stroke();}
+    ctx.restore();
+  }
+  function draw(){
+    ctx.clearRect(0,0,W,H);const bgG=ctx.createLinearGradient(0,0,0,H);bgG.addColorStop(0,'#CFEFFF');bgG.addColorStop(.6,'#F0E4FF');bgG.addColorStop(1,'#FFE9D2');ctx.fillStyle=bgG;ctx.fillRect(0,0,W,H);twinkles(ctx,tm,W,H,2);
+    ctx.fillStyle='#B8E6CF';ctx.fillRect(0,H-26,W,26);
+    for(const it of items)if(it.state==='fall'||it.state==='out')drawItem(it);
+    const working=busyItem&&busyItem.state==='work';
+    ctx.save();ctx.translate(ex,CY);ctx.scale(SC,SC);drawEnzyme(ctx,0,0,0,tm,working?1+.04*Math.sin(tm/70):1,working?.9:(busyItem?.4:0));ctx.restore();
+    for(const it of items)if(it.state==='drop'||it.state==='work')drawItem(it);
+    tag(ctx,'Enzyme',ex,CY+24,'center',20);
+    if(G&&G.prog<1){const left=ex>380;pointer(ctx,'Active site',left?ex-150:ex+150,CY-96,left?'right':'left',left?ex-142:ex+142,CY-96,left?ex-22:ex+22,PTOP+14);}
+    for(const p of prods)piece(ctx,p.x,p.y,p.col,p.rot,clamp(p.life/.6,0,1));
+    for(const f of fx)floatText(ctx,f);
+    sparks.draw(ctx);
+  }
+  function loop(ts){
+    if(dead)return;
+    const dt=last?Math.min(.05,(ts-last)/1000):.016;last=ts;
+    if(running&&!paused)update(dt);
+    if(dead)return;
+    draw();raf=requestAnimationFrame(loop);
+  }
+  raf=requestAnimationFrame(loop);
+  return{
+    start:function(){running=true;last=0;},
+    stop:function(){dead=true;cancelAnimationFrame(raf);document.removeEventListener('keydown',kd);document.removeEventListener('keyup',ku);},
+    dbg:{items:()=>items,setTarget:v=>{tx=v;ex=v;},busy:()=>!!busyItem}
+  };
+}
+
+/* ---------- Game 2: Thermostat Rush ---------- */
+function makeThermo(box){
+  box.innerHTML='<div class="labgrid"><div class="labcol"><div class="canvaswrap"><canvas id="tlCanvas" width="760" height="400" role="img" aria-label="Lab animation of an enzyme working at the chosen temperature."></canvas><div class="banner" id="banner" role="alert" hidden></div></div>'+
+   '<div class="controls"><button class="btn" type="button" id="tlCool">Cool \u22125\u00B0C</button>'+
+   '<label class="slide">Temp <input type="range" id="tlSlider" min="0" max="70" step="1" value="37"><output id="tlOut" for="tlSlider">37\u00B0C</output></label>'+
+   '<button class="btn" type="button" id="tlHeat">Heat +5\u00B0C</button><button class="btn" type="button" id="tlNew" disabled>New enzyme</button></div></div>'+
+   '<div class="sidecol"><div class="meter"><div class="mrow"><span>Rate</span><strong id="mRate">10.0 mg/min</strong></div><div class="bar"><i id="mRateBar"></i></div>'+
+   '<div class="mrow"><span>Enzyme shape</span><strong id="mHealth">100%</strong></div><div class="bar"><i id="mHealthBar"></i></div></div>'+
+   '<p class="status" id="tlStatus"></p>'+
+   '<canvas id="gCanvas" width="340" height="300" role="img" aria-label="Graph of rate against temperature. Dots appear as you test temperatures."></canvas></div></div>';
+  const sl=$('#tlSlider'),out=$('#tlOut'),banner=$('#banner'),btnNew=$('#tlNew');
+  let time=110,evT=5,ev=null,nextType='heat',needNew=false,started=false,dragging=false,secShown=-1,stopped=false;
+  const els={rate:$('#mRate'),rb:$('#mRateBar'),h:$('#mHealth'),hb:$('#mHealthBar'),status:$('#tlStatus')};
+  const cache={};
+  function setTxt(k,el,v){if(cache[k]!==v){cache[k]=v;el.textContent=v;}}
+  let lab=null;
+  function startEvent(){
+    ev={type:nextType,left:nextType==='heat'?10:9};
+    lab.setDrift(nextType==='heat'?2.4:-2.4);
+    banner.className='banner '+nextType;banner.hidden=false;
+    banner.textContent=nextType==='heat'?'Heat wave! The temperature is rising. Cool it down before the enzyme denatures!':'Cold snap! The temperature is dropping. Warm it up to keep working!';
+    nextType=Math.random()<.6?'heat':'cold';
+  }
+  function endEvent(){ev=null;lab.setDrift(0);banner.hidden=true;evT=4+Math.random()*3;}
+  function setTemp(v){v=clamp(v,0,70);sl.value=v;out.textContent=Math.round(v)+'\u00B0C';lab.setT(v);}
+  lab=TempLab($('#tlCanvas'),$('#gCanvas'),{
+    onTick:function(i,dt){
+      if(!started||stopped)return;
+      time-=dt;
+      const s=Math.ceil(Math.max(0,time));if(s!==secShown){secShown=s;api.extra('Time left: '+s+' s');}
+      if(time<=0){api.lose('Time ran out. Keep the enzyme near 37\u00B0C so it works fast.','The enzyme works fastest near 37\u00B0C. Cold slows it down.');return;}
+      if(ev){ev.left-=dt;if(ev.left<=0)endEvent();}
+      else if(!needNew){evT-=dt;if(evT<=0)startEvent();}
+    },
+    onProduct:function(){
+      api.gain(10);api.progress();
+      if(!api.over()&&G.prog<G.goal&&G.prog%3===0){lab.setPaused(true);api.ask(L2,()=>lab.setPaused(false));}
+    },
+    onDenature:function(){
+      needNew=true;if(ev)endEvent();
+      btnNew.disabled=false;btnNew.classList.add('pulse');
+      toast('The enzyme denatured! Heat changed its shape for good. Cooling it down will not fix it. Click New enzyme.','bad',6000);
+      api.hit('Heat denatures an enzyme. The shape changes for good, so the substrate can no longer fit.');
+    },
+    onFrame:function(i){
+      setTxt('rate',els.rate,i.rate.toFixed(1)+' mg/min');
+      els.rb.style.width=Math.min(100,i.rate/10*100)+'%';
+      setTxt('h',els.h,Math.round(i.health*100)+'%');
+      els.hb.style.width=(i.health*100)+'%';
+      setTxt('status',els.status,i.text);
+      if(!dragging){sl.value=Math.round(i.T);out.textContent=Math.round(i.T)+'\u00B0C';}
+    }
+  });
+  lab.setPaused(true);
+  sl.addEventListener('pointerdown',()=>{dragging=true;});
+  function up(){dragging=false;}
+  document.addEventListener('pointerup',up);
+  sl.addEventListener('input',()=>setTemp(Number(sl.value)));
+  $('#tlCool').addEventListener('click',()=>setTemp(lab.getT()-5));
+  $('#tlHeat').addEventListener('click',()=>setTemp(lab.getT()+5));
+  btnNew.addEventListener('click',()=>{if(!needNew)return;lab.fresh();needNew=false;btnNew.disabled=true;btnNew.classList.remove('pulse');evT=6;toast('Fresh enzyme! Keep it comfortable.','good',2500);});
+  function kd(e){
+    if(e.target===sl)return;
+    if(e.key==='ArrowUp'||e.key==='ArrowRight'){setTemp(lab.getT()+3);e.preventDefault();}
+    if(e.key==='ArrowDown'||e.key==='ArrowLeft'){setTemp(lab.getT()-3);e.preventDefault();}
+  }
+  document.addEventListener('keydown',kd);
+  return{
+    start:function(){started=true;lab.setPaused(false);api.extra('Time left: '+Math.ceil(time)+' s');},
+    stop:function(){stopped=true;lab.destroy();document.removeEventListener('keydown',kd);document.removeEventListener('pointerup',up);},
+    dbg:{setTemp:setTemp,getT:()=>lab.getT(),banner:()=>(banner.hidden?'':banner.className),needNew:()=>needNew,clickNew:()=>btnNew.click()}
+  };
+}
+
+/* ---------- Games 3 and 4: sorting rush ---------- */
+const RUSH3={
+  fall:9,
+  bins:['Amylase','Protease','Lipase','Sucrase'],
+  items:[
+   {e:'\uD83C\uDF5E',t:'Starch',s:'bread',a:0,x:'Amylase breaks down starch.'},
+   {e:'\uD83C\uDF5D',t:'Starch',s:'pasta',a:0,x:'Amylase breaks down starch.'},
+   {e:'\uD83E\uDD54',t:'Starch',s:'potato',a:0,x:'Amylase breaks down starch.'},
+   {e:'\uD83E\uDD5A',t:'Proteins',s:'egg white',a:1,x:'Protease breaks down proteins.'},
+   {e:'\uD83C\uDF57',t:'Proteins',s:'chicken',a:1,x:'Protease breaks down proteins.'},
+   {e:'\uD83E\uDD69',t:'Proteins',s:'steak',a:1,x:'Protease breaks down proteins.'},
+   {e:'\uD83E\uDDC8',t:'Fats (lipids)',s:'butter',a:2,x:'Lipase breaks down fats (lipids).'},
+   {e:'\uD83E\uDD53',t:'Fats (lipids)',s:'bacon',a:2,x:'Lipase breaks down fats (lipids).'},
+   {e:'\uD83E\uDD5C',t:'Fats (lipids)',s:'peanut oil',a:2,x:'Lipase breaks down fats (lipids).'},
+   {e:'\uD83C\uDF6C',t:'Sucrose (sugar)',s:'candy',a:3,x:'Sucrase breaks down sucrose (sugar).'},
+   {e:'\uD83C\uDF6D',t:'Sucrose (sugar)',s:'lollipop',a:3,x:'Sucrase breaks down sucrose (sugar).'},
+   {e:'\uD83E\uDD44',t:'Sucrose (sugar)',s:'table sugar',a:3,x:'Sucrase breaks down sucrose (sugar).'}
+  ]
+};
+const RUSH4={
+  fall:10,
+  bins:['Hydrolysis (break apart)','Dehydration synthesis (build up)'],
+  items:[
+   {e:'\uD83E\uDD6A',t:'Digesting a sandwich',s:'',a:0,x:'Digestion breaks big molecules into smaller ones. That is hydrolysis.'},
+   {e:'\uD83D\uDCAA',t:'Building muscle',s:'',a:1,x:'Building muscle joins small molecules into larger ones. That is dehydration synthesis (condensation).'},
+   {e:'\uD83C\uDFC3',t:'Weight loss: breaking down stored fat',s:'',a:0,x:'Breaking down stored fat is hydrolysis.'},
+   {e:'\uD83D\uDC3B',t:'A bear storing fat before hibernating',s:'',a:1,x:'Storing fat builds larger molecules. That is dehydration synthesis (condensation).'},
+   {e:'\uD83E\uDD69',t:'Protease breaking down protein',s:'',a:0,x:'Splitting a protein into smaller pieces is hydrolysis.'},
+   {e:'\uD83E\uDDEC',t:'Cells linking amino acids into a protein',s:'',a:1,x:'Joining small molecules into a bigger one is dehydration synthesis (condensation).'},
+   {e:'\uD83C\uDF5E',t:'Amylase splitting starch into sugars',s:'',a:0,x:'Splitting a big molecule into smaller ones is hydrolysis.'},
+   {e:'\uD83D\uDD0B',t:'Storing extra energy as fat',s:'',a:1,x:'Storing energy builds bigger molecules. That is dehydration synthesis (condensation).'},
+   {e:'\uD83E\uDDC8',t:'Lipase splitting fat into smaller pieces',s:'',a:0,x:'Splitting fat into smaller pieces is hydrolysis.'},
+   {e:'\uD83C\uDF31',t:'Joining sugars to make starch',s:'',a:1,x:'Joining small molecules into a larger one is condensation (dehydration synthesis).'},
+   {e:'\uD83C\uDF7D\uFE0F',t:'Releasing nutrients from dinner',s:'',a:0,x:'Releasing nutrients means breaking food down. That is hydrolysis.'},
+   {e:'\uD83E\uDE79',t:'Growing new tissue to heal a cut',s:'',a:1,x:'Growing tissue builds larger molecules. That is dehydration synthesis (condensation).'}
+  ]
+};
+function makeRush(cfg){
+  return function(box){
+    box.innerHTML='<div class="rush" id="rush"><div class="dropline"></div></div><div class="bins" id="bins"></div>';
+    const rush=$('#rush'),bins=$('#bins'),CARDH=76;
+    bins.innerHTML=cfg.bins.map((b,i)=>'<button class="bin" type="button" data-i="'+i+'"><span class="k">'+(i+1)+'</span><span></span></button>').join('');
+    [].forEach.call(bins.querySelectorAll('.bin'),(b,i)=>{b.lastChild.textContent=cfg.bins[i];b.addEventListener('click',()=>choose(i));});
+    let cards=[],queue=[],raf=0,last=0,running=false,dead=false;
+    function nextItem(){if(!queue.length)queue=shuffle(cfg.items);return queue.pop();}
+    function spawn(){
+      const it=nextItem(),el=document.createElement('div');
+      el.className='card';el.style.setProperty('--cb',['#FFE3EC','#E1F0FF','#E4F8E1','#FFF0CF','#EBE3FF','#D9F7F2'][Math.floor(Math.random()*6)]);
+      el.innerHTML='<span class="em"></span><span class="tx"><strong></strong><small></small></span>';
+      el.querySelector('.em').textContent=it.e;el.querySelector('strong').textContent=it.t;
+      const sm=el.querySelector('small');if(it.s)sm.textContent='('+it.s+')';else sm.remove();
+      const lane=rush.clientWidth||700,w=Math.min(380,lane*.86);
+      el.style.width=w+'px';el.style.left=Math.max(0,Math.random()*(lane-w))+'px';
+      el.style.transform='translateY(-'+CARDH+'px)';
+      rush.appendChild(el);
+      cards.push({el:el,y:-CARDH,item:it,done:false});
+    }
+    function active(){let best=null;for(const c of cards){if(!c.done&&(!best||c.y>best.y))best=c;}return best;}
+    function remove(c,ms){setTimeout(()=>{if(c.el.parentNode)c.el.parentNode.removeChild(c.el);cards=cards.filter(k=>k!==c);},ms);}
+    function choose(i){
+      if(!running||!G||G.over)return;
+      const c=active();if(!c)return;
+      c.done=true;
+      if(i===c.item.a){c.el.classList.add('ok');sparkleAt(c.el,18);api.gain(10);remove(c,450);api.progress();}
+      else{c.el.classList.add('no');toast('Not quite. '+c.item.x,'bad');remove(c,600);api.hit(c.item.x);}
+    }
+    function kd(e){const n=parseInt(e.key,10);if(n>=1&&n<=cfg.bins.length&&!(e.target&&/INPUT|TEXTAREA/.test(e.target.tagName))){choose(n-1);}}
+    document.addEventListener('keydown',kd);
+    function loop(ts){
+      if(dead)return;
+      const dt=last?Math.min(.05,(ts-last)/1000):.016;last=ts;
+      if(running&&G&&!G.over){
+        const H=rush.clientHeight||340,speed=H/Math.max(5.5,cfg.fall-.25*Math.min(G.prog,8));
+        const open=cards.filter(c=>!c.done);
+        if(!cards.length||(cards.length<3&&cards[cards.length-1].y>150))spawn();
+        for(const c of cards){
+          if(c.done)continue;
+          c.y+=speed*dt;c.el.style.transform='translateY('+c.y+'px)';
+          if(c.y>=H-CARDH){
+            c.done=true;c.el.classList.add('no');toast('Too slow! '+c.item.x,'bad');remove(c,600);api.hit(c.item.x);
+            if(!G||G.over)break;
+          }
+        }
+        const a=active();cards.forEach(c=>c.el.classList.toggle('active',c===a));
+      }
+      raf=requestAnimationFrame(loop);
+    }
+    raf=requestAnimationFrame(loop);
+    return{
+      start:function(){running=true;last=0;},
+      stop:function(){dead=true;cancelAnimationFrame(raf);document.removeEventListener('keydown',kd);},
+      dbg:{active:()=>{const c=active();return c?c.item:null;},choose:choose}
+    };
+  };
+}
+
+/* ---------- Game 5: Organ Finder ---------- */
+const OPROMPTS=[
+ {q:'Click the main site of water absorption.',a:'large',x:'The large intestine absorbs water and forms solid waste.'},
+ {q:'Click the main site of nutrient absorption.',a:'small',x:'The small intestine absorbs most nutrients into the blood.'},
+ {q:'Click the organ with acid and enzymes that churns the food.',a:'stomach',x:'The stomach mixes food (mechanical) and adds acid and enzymes (chemical).'},
+ {q:'Click the muscle tube that squeezes food down to the stomach.',a:'esophagus',x:'The esophagus pushes food along. No digestion happens there.'},
+ {q:'Click the organ that makes bile to break fat into tiny droplets.',a:'liver',x:'The liver makes bile. Food never passes through the liver.'},
+ {q:'Click the organ that stores bile.',a:'gall',x:'The gall bladder stores bile and releases it into the small intestine.'},
+ {q:'Click the organ that makes digestive enzymes and sends them to the small intestine.',a:'pancreas',x:'The pancreas makes enzymes. Food never passes through it.'},
+ {q:'Click where chewing happens and saliva amylase starts breaking down starch.',a:'mouth',x:'The mouth does both mechanical (chewing) and chemical (amylase) digestion.'},
+ {q:'Click the organ where protein digestion begins.',a:'stomach',x:'Stomach acid and pepsin begin breaking down protein.'},
+ {q:'Click the organ that forms solid waste.',a:'large',x:'The large intestine removes water and forms solid waste.'},
+ {q:'Click the organ where the enzymes finish digesting starch, protein, and fat.',a:'small',x:'The small intestine finishes chemical digestion.'},
+ {q:'Click the organ where food does NOT travel and that makes bile.',a:'liver',x:'The liver makes bile, but food never enters it.'}
+];
+function makeOrgan(box){
+  box.innerHTML='<div class="organgrid"><div class="odiag" id="odiag"></div><div class="oside"><div class="oprompt" id="oprompt" aria-live="polite"></div><div class="obar"><i id="obar"></i></div><div class="ores" id="ores" aria-live="polite"></div></div></div>';
+  const diag=$('#odiag');diag.innerHTML=organSVG({pick:true});
+  const svg=diag.querySelector('svg');
+  let queue=[],cur=null,locked=true,tLeft=0,tMax=12,raf=0,last=0,dead=false,timers=[],running=false;
+  function later(fn,ms){timers.push(setTimeout(fn,ms));}
+  function next(){
+    if(dead||!G||G.over)return;
+    svg.classList.remove('has-hl');[].forEach.call(svg.querySelectorAll('.organ'),g=>g.classList.remove('hl'));
+    if(!queue.length)queue=shuffle(OPROMPTS);
+    cur=queue.pop();tMax=Math.max(8,12-.4*G.prog);tLeft=tMax;locked=false;
+    $('#oprompt').textContent=cur.q;$('#ores').textContent='';
+    if(S.tts)speak(cur.q);
+  }
+  function answer(id){
+    if(locked||!cur||!G||G.over)return;
+    locked=true;
+    const ok=id===cur.a;
+    svg.classList.add('has-hl');const g=svg.querySelector('.organ[data-id="'+cur.a+'"]');if(g)g.classList.add('hl');
+    $('#ores').textContent=ok?'Correct! That is the '+ORG[cur.a].toLowerCase()+'. '+cur.x:(id?'You clicked the '+ORG[id].toLowerCase()+'. The answer is the '+ORG[cur.a].toLowerCase()+'. ':'Time is up. The answer is the '+ORG[cur.a].toLowerCase()+'. ')+(ok?'':cur.x);
+    if(ok){sparkleAt(g,20);api.gain(10);api.progress();later(next,1100);}
+    else{api.hit(cur.x);later(next,2400);}
+  }
+  diag.addEventListener('click',e=>{const g=e.target.closest&&e.target.closest('.organ');if(g)answer(g.dataset.id);});
+  diag.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){const g=e.target.closest&&e.target.closest('.organ');if(g){e.preventDefault();answer(g.dataset.id);}}});
+  function loop(ts){
+    if(dead)return;
+    const dt=last?Math.min(.05,(ts-last)/1000):.016;last=ts;
+    if(running&&!locked&&cur){
+      tLeft-=dt;$('#obar').style.width=Math.max(0,tLeft/tMax*100)+'%';
+      if(tLeft<=0)answer(null);
+    }
+    raf=requestAnimationFrame(loop);
+  }
+  raf=requestAnimationFrame(loop);
+  return{
+    start:function(){running=true;next();},
+    stop:function(){dead=true;cancelAnimationFrame(raf);timers.forEach(clearTimeout);},
+    dbg:{cur:()=>cur,answer:answer,locked:()=>locked}
+  };
+}
+
+/* ---------- Game 6: Boss Battle ---------- */
+function makeBoss(box){
+  box.innerHTML='<div class="boss" id="boss"><svg viewBox="0 0 200 170" role="img" aria-label="The Denaturator, a spiky red monster"><polygon points="100,6 118,36 150,16 150,52 186,60 166,90 190,120 154,126 150,158 118,142 100,166 82,142 50,158 46,126 10,120 34,90 14,60 50,52 50,16 82,36" fill="#D6453D" stroke="#12313A" stroke-width="5" stroke-linejoin="round"/>'+
+   '<circle cx="76" cy="82" r="13" fill="#fff" stroke="#12313A" stroke-width="3"/><circle cx="124" cy="82" r="13" fill="#fff" stroke="#12313A" stroke-width="3"/><circle cx="80" cy="85" r="5" fill="#12313A"/><circle cx="120" cy="85" r="5" fill="#12313A"/>'+
+   '<path d="M58 62 L92 74 M142 62 L108 74" stroke="#12313A" stroke-width="6" stroke-linecap="round"/><path d="M70 122 L82 108 L94 122 L106 108 L118 122 L130 108" fill="none" stroke="#12313A" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>'+
+   '<div class="bossname">The Denaturator</div><div class="bossbar" role="img" aria-label="Boss health"><i id="bossHP"></i></div></div><div class="qcard" id="bq"></div>';
+  const bossEl=$('#boss'),hp=$('#bossHP');
+  const pool=shuffle([].concat(L1,L2,L3,EXTRA));
+  let idx=0,dead=false,timers=[];
+  function fx(cls){bossEl.classList.remove('hit','taunt');void bossEl.offsetWidth;bossEl.classList.add(cls);timers.push(setTimeout(()=>bossEl.classList.remove(cls),650));}
+  function next(){
+    if(dead||!G||G.over)return;
+    const q=pool[idx++%pool.length];
+    renderQuestion($('#bq'),q,{next:'Next attack',onAnswer:ok=>{
+      if(ok){fx('hit');sparkleAt(bossEl,24);hp.style.width=((G.goal-G.prog-1)/G.goal*100)+'%';}else fx('taunt');
+    }},ok=>{
+      if(ok){api.gain(10);api.progress();}else api.hit(q.q+' Answer: '+q.c+'.');
+      next();
+    });
+  }
+  return{
+    start:function(){next();},
+    stop:function(){dead=true;timers.forEach(clearTimeout);stopSpeak();},
+    dbg:{q:()=>lastQ}
+  };
+}
+
+/* ---------- game list ---------- */
+const GAMES={
+ 1:{name:'Lock and Key Catch',desc:'Catch the substrate that fits. Dodge every wrong shape.',goalLabel:'Caught',goal:10,
+    howto:'Slide the enzyme left and right with your mouse, finger, or the arrow keys. Catch the teal-and-orange substrate in the active site. Dodge every other shape, because they do not fit. Catch 10 to win. Power-up questions give bonus points and lives.',make:makeCatch},
+ 2:{name:'Thermostat Rush',desc:'Control the temperature. Keep the enzyme alive and working.',goalLabel:'Products',goal:12,
+    howto:'Make 12 products before time runs out. Change the temperature with the slider, the Heat and Cool buttons, or the arrow keys. Heat waves and cold snaps push the temperature around. If it gets too hot, the enzyme denatures and you lose a life.',make:makeThermo},
+ 3:{name:'Digestion Dash',desc:'Send each food to the enzyme that breaks it down.',goalLabel:'Sorted',goal:10,
+    howto:'Foods fall from the top. Tap the enzyme that breaks down the food with the blue outline (or press 1 to 4). Do not let a food reach the red line.',make:makeRush(RUSH3)},
+ 4:{name:'Build or Break',desc:'Hydrolysis or dehydration synthesis? Decide fast.',goalLabel:'Sorted',goal:10,
+    howto:'Each card is something that happens in your body. Tap Hydrolysis if it breaks big molecules apart. Tap Dehydration synthesis (also called condensation) if it builds a bigger molecule (or press 1 or 2). Do not let a card reach the red line.',make:makeRush(RUSH4)},
+ 5:{name:'Organ Finder',desc:'Click the right organ before the timer runs out.',goalLabel:'Found',goal:10,
+    howto:'Read the clue, then click the organ on the diagram before the green timer runs out. You can also use Tab and Enter. Find 10 organs to win.',make:makeOrgan},
+ 6:{name:'Boss Battle',desc:'Answer questions to defeat The Denaturator.',goalLabel:'Boss hits',goal:10,
+    howto:'The Denaturator wants to ruin every enzyme! Each right answer hits the boss. Each wrong answer costs you a life. Land 10 hits to win.',make:makeBoss}
+};
+
+function renderHome(){
+  const cnt=[1,2,3,4,5,6].filter(n=>S.done[n]).length;
+  $('#finalWrap').hidden=!allDone();
+  $('#progLine').textContent=allDone()?'You finished all six games! You can now replay any of them.':'Games finished: '+cnt+' of 6. '+(bossOpen()?'The Boss Battle is open! ':'The Boss Battle unlocks after games 1 to 5. ')+'A finished game stays locked until you finish all six.';
+  const ul=$('#levelList');ul.innerHTML='';
+  [1,2,3,4,5,6].forEach(n=>{
+    const li=document.createElement('li');
+    const b=document.createElement('button');b.className='lvl';b.type='button';
+    const st=S.stars[n],isDone=!!S.done[n],locked=isLocked(n),bossWait=locked&&!isDone&&n===6;
+    const TC=[['#4A5FD0','#E5E9FF'],['#D9482F','#FFE3DC'],['#1B9A6D','#DDF6EC'],['#D9731A','#FFEBD2'],['#C23C86','#FFE1F0'],['#7A47C4','#EDE3FF']][n-1];
+    b.style.setProperty('--c',TC[0]);b.style.setProperty('--t',TC[1]);
+    b.innerHTML='<span class="num">'+n+'</span><h3></h3><span class="st"></span><p></p>';
+    b.querySelector('h3').textContent=GAMES[n].name;
+    b.querySelector('p').textContent=GAMES[n].desc;
+    const stEl=b.querySelector('.st');
+    if(bossWait){stEl.innerHTML='\uD83D\uDD12<br><small>Finish 1 to 5</small>';stEl.setAttribute('aria-label','Locked until games 1 to 5 are finished');}
+    else if(!isDone&&st==null){stEl.innerHTML='<small>Not played</small>';stEl.setAttribute('aria-label','Not played yet');}
+    else if(locked){stEl.innerHTML=starsText(st||1)+'<br><small>Finished</small>';stEl.setAttribute('aria-label','Finished with '+(st||1)+' of 3 stars. Locked until all games are finished.');}
+    else{stEl.textContent=starsText(st||0);stEl.setAttribute('aria-label',(st||0)+' of 3 stars');}
+    if(locked){b.disabled=true;b.setAttribute('aria-disabled','true');}
+    b.addEventListener('click',()=>openGame(n));
+    li.appendChild(b);ul.appendChild(li);
+  });
+}
+
+/* ---------- wiring ---------- */
+$('#btnBack').addEventListener('click',goHome);
+$('#finBack').addEventListener('click',goHome);
+$('#finMenu').addEventListener('click',goHome);
+$('#btnFinal').addEventListener('click',openFinal);
+$('#finPrint').addEventListener('click',()=>{try{window.print();}catch(e){}});
+$('#optTts').addEventListener('change',e=>{S.tts=e.target.checked;if(!S.tts)stopSpeak();});
+const gl=$('#gloss');
+$('#glossList').innerHTML=GLOSS.map(g=>'<dt>'+g[0]+'</dt><dd>'+g[1]+'</dd>').join('');
+$('#btnGloss').addEventListener('click',()=>{if(gl.showModal)gl.showModal();else gl.setAttribute('open','');});
+$('#glossClose').addEventListener('click',()=>{if(gl.close)gl.close();else gl.removeAttribute('open');});
+
+loadProg();
+hero=LockKey($('#heroCanvas'),{mode:'break',cycle:['break','build']});
+renderHome();
+if(reduceMotion)hero.still('break',3.2);else hero.play('break');
+
+/* hooks for testing */
+window.__enzymeGame={openFinal:openFinal,openGame:openGame,G:()=>G,S:S,goHome:goHome};
+})();
+</script>
+</body>
+</html>
